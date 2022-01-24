@@ -1,0 +1,9 @@
+Document: ipmgr
+Title: ipmgr tool
+Author: Alexis Wilke
+Abstract: This is the reference manual for the ipmgr tool.
+Section: net
+
+Format: HTML
+Index: /usr/share/doc/ipmgr/html/index.html
+Files: /usr/share/doc/ipmgr/html/*

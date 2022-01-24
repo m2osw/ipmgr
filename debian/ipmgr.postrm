@@ -1,0 +1,18 @@
+#!/bin/sh -e
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+if [ "$1" = "purge" ]
+then
+    # Remove our include if still in place
+    #
+    sed \
+        --in-place=.bak \
+        --expression 's/^\(include "\/etc\/bind\/ipmgr-options.conf"\)//' \
+            /etc/bind/named.conf.local
+fi
+
+#DEBHELPER#
+
+# vim: ts=4 sw=4 et nocindent

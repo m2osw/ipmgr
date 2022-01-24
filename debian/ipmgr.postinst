@@ -1,0 +1,26 @@
+#!/bin/sh -e
+
+#DEBHELPER#
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+if [ "$1" = "configure" ]
+then
+    # Include our setup file which includes all the zones we generate
+    #
+    mkdir -p /etc/bind/zones/
+    echo "# DO NOT EDIT, USE ipmgr ... TO REGENERATE THIS FILE" > /etc/bind/zones/ipmgr.conf
+    sed \
+        -e '/^\(include "\/etc\/bind\/ipmgr-options.conf"\)/ {s//\1/;:a;n;ba;q}' \
+        -e '$ainclude "/etc/bind/ipmgr-options.conf"' \
+            /etc/bind/named.conf.local
+    ipmgr
+
+    if systemctl is-active named
+    then
+        systemctl restart named
+    fi
+fi
+
+# vim: ts=4 sw=4 et nocindent

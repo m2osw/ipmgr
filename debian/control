@@ -1,0 +1,39 @@
+Source: ipmgr
+Section: net
+Priority: optional
+Maintainer: Alexis Wilke <alexis@m2osw.com>
+Build-Depends: cmake,
+    debhelper,
+    doxygen,
+    eventdispatcher-dev (>= 1.1.37.0~bionic),
+    graphviz,
+    libaddr-dev (>= 1.0.23.0~bionic),
+    libadvgetopt-dev (>= 2.0.24.0~bionic),
+    libboost-dev,
+    libexcept-dev (>= 1.1.10.0~bionic),
+    snapcmakemodules (>= 1.0.61.0~bionic),
+    snapdev (>= 1.1.18.0~bionic)
+Standards-Version: 3.9.4
+Homepage: https://snapwebsites.org/project/ipmgr
+Vcs-Git: https://github.com/m2osw/snapcpp.git
+Vcs-Browser: https://github.com/m2osw/ipmgr
+
+Package: ipmgr
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Suggests: ipmgr-doc
+Description: Manager DNS zone files with ease.
+ The ipmgr tool is used to add or remove domain name DNS definitions to your
+ BIND9 server.
+ .
+ The tool reads configuration files (/etc/ipmgr/zones/...) where simplified
+ DNS definitions are found and generates complete zones that it then sends
+ to your BIND9 system.
+
+Package: ipmgr-doc
+Section: doc
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: iplock (= ${binary:Version})
+Description: Manager you DNS zones with ease.
+ The ipmgr tool documentation.

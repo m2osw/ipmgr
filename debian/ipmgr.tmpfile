@@ -1,0 +1,7 @@
+# Create files that otherwise get deleted on a reboot
+#
+# See tmpfiles.d(5) for details
+
+# type   path                permissions  user  group  cleanup
+d        /run/ipmgr          0750         root  root   -
+d        /run/lock/ipmgr     0750         root  root   -
