@@ -23,6 +23,7 @@ project(ipmrg_project)
 
 find_package(AdvGetOpt        REQUIRED)
 find_package(Boost            REQUIRED)
+find_package(CppProcess       REQUIRED)
 find_package(EventDispatcher  REQUIRED)
 find_package(LibAddr          REQUIRED)
 find_package(LibExcept        REQUIRED)

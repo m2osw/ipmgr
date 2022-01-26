@@ -39,10 +39,17 @@ public:
     int                     run();
 
 private:
+    bool                    dry_run() const;
+    bool                    verbose() const;
     int                     make_root();
+    int                     list_zones();
+    int                     process_zones();
+    int                     restart_bind9();
 
     advgetopt::getopt       f_opt;
     bool                    f_bind_restart_required = false;
+    bool                    f_dry_run = false;
+    bool                    f_verbose = false;
 };
 
 
