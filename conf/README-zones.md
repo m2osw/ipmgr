@@ -211,14 +211,13 @@ is documented below.
     hostmaster=alexis@example.com
     ips=10.0.0.1
     mail=mail
-    mail_priority=10
-    mail_key=mail.example.com.key
     ttl=60m
     refresh=3h
     retry=3m
     expire=2w
     minimum_cache_failures=5m
     dynamic=true
+    nameservers="ns1.example.com ns2.example.com"
 
     [websites]
     sub_domains=${website_subdomains}
@@ -232,6 +231,8 @@ is documented below.
     [mail]
     sub_domains="mail"
     ttl=4w
+    mail_priority=10
+    mail_key=mail.example.com.key
 
     [info]
     sub_domains="info"

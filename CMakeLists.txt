@@ -19,7 +19,7 @@
 #
 cmake_minimum_required(VERSION 3.10.2)
 
-project(ipmrg_project)
+project(ipmgr_project)
 
 find_package(AdvGetOpt        REQUIRED)
 find_package(Boost            REQUIRED)
@@ -27,6 +27,7 @@ find_package(CppProcess       REQUIRED)
 find_package(EventDispatcher  REQUIRED)
 find_package(LibAddr          REQUIRED)
 find_package(LibExcept        REQUIRED)
+find_package(LibTLD           REQUIRED)
 find_package(SnapCMakeModules REQUIRED)
 find_package(SnapDev          REQUIRED)
 find_package(SnapLogger       REQUIRED)
