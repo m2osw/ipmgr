@@ -652,7 +652,7 @@ int dns_options::load_file()
 
     // ready the file as input
     //
-    snap::file_contents file(f_filename);
+    snapdev::file_contents file(f_filename);
     if(!file.read_all())
     {
         // could not open file for reading
@@ -698,7 +698,7 @@ int dns_options::load_file()
  */
 int dns_options::save_file()
 {
-    snap::file_contents file(f_filename);
+    snapdev::file_contents file(f_filename);
     file.contents(f_data);
     file.write_all();
     return 0;
@@ -1100,7 +1100,7 @@ read_token:
 
                 }
             }
-            snap::NOT_REACHED();
+            snapdev::NOT_REACHED();
             break;
 
         }
@@ -1581,7 +1581,7 @@ int dns_options::recursive_option(keyword::pointer_t in)
         in->add_value(k);
     }
 
-    snap::NOT_REACHED();
+    snapdev::NOT_REACHED();
     return 1;
 }
 

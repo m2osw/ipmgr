@@ -418,10 +418,10 @@ int ipmgr::read_zones()
     {
         std::string dir(f_opt.get_string("zone-directories", i));
         std::string pattern(dir + "/*.conf");
-        snap::glob_to_list<std::vector<std::string>> glob;
+        snapdev::glob_to_list<std::vector<std::string>> glob;
         if(!glob.read_path<
-                  snap::glob_to_list_flag_t::GLOB_FLAG_RECURSIVE
-                , snap::glob_to_list_flag_t::GLOB_FLAG_IGNORE_ERRORS>(pattern))
+                  snapdev::glob_to_list_flag_t::GLOB_FLAG_RECURSIVE
+                , snapdev::glob_to_list_flag_t::GLOB_FLAG_IGNORE_ERRORS>(pattern))
         {
             SNAP_LOG_WARNING
                 << "could not read \""
@@ -453,7 +453,7 @@ int ipmgr::read_zones()
 
             if(f_config_warnings)
             {
-                std::string const domain_filename(snap::pathinfo::basename(g, ".conf"));
+                std::string const domain_filename(snapdev::pathinfo::basename(g, ".conf"));
                 if(domain_filename != domain)
                 {
                     SNAP_LOG_WARNING
