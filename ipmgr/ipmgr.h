@@ -35,18 +35,90 @@
 class ipmgr
 {
 public:
-    struct zone_files_t
+    class zone_files
     {
+    public:
         // indexed by domain names
-        typedef std::map<std::string, zone_files_t>             map_t;
+        typedef std::shared_ptr<zone_files>                     pointer_t;
+        typedef std::map<std::string, pointer_t>                map_t;
         typedef std::vector<advgetopt::conf_file::pointer_t>    config_array_t;
+
+                                zone_files(
+                                      advgetopt::getopt::pointer_t opt
+                                    , bool verbose);
+
+        void                    add(advgetopt::conf_file::pointer_t zone);
+
+        std::string             get_zone_param(
+                                      std::string const & name
+                                    , std::string const & default_name = std::string()
+                                    , std::string const & default_value = std::string());
+        bool                    get_zone_bool(
+                                      std::string const & name
+                                    , std::string const & default_name = std::string()
+                                    , std::string const & default_value = std::string());
+        std::int32_t            get_zone_integer(
+                                      std::string const & name
+                                    , std::string const & default_name = std::string()
+                                    , std::int32_t default_value = 0);
+        std::int64_t            get_zone_duration(
+                                      std::string const & name
+                                    , std::string const & default_name = std::string()
+                                    , std::string const & default_value = std::string());
+        std::string             get_zone_email(
+                                      std::string const & name
+                                    , std::string const & default_name
+                                    , std::string const & default_value);
+
+        bool                    retrieve_fields();
+        std::string             domain() const;
+        bool                    is_dynamic() const;
+        std::string             generate_zone_file();
+
+    private:
+        bool                    retrieve_domain();
+        bool                    retrieve_ttl();
+        bool                    retrieve_ips();
+        bool                    retrieve_nameservers();
+        bool                    retrieve_hostmaster();
+        bool                    retrieve_serial();
+        bool                    retrieve_refresh();
+        bool                    retrieve_retry();
+        bool                    retrieve_expire();
+        bool                    retrieve_minimum_cache_failures();
+        bool                    retrieve_mail_fields();
+        bool                    retrieve_dynamic();
+        bool                    retrieve_all_sections();
+        std::uint32_t           get_zone_serial(bool next = false);
+
+        advgetopt::getopt::pointer_t        f_opt = advgetopt::getopt::pointer_t();
+        bool                                f_verbose = false;
 
         // the order matters; when searching for a parameter, the
         // first file from the end of the vector must be checked
         // first; the first instance of a defined parameter must be
         // used; prior instances were overridden
         //
-        config_array_t          f_config = config_array_t();
+        config_array_t                      f_configs = config_array_t();
+
+        // these get defined when we call the retrive_fields() function
+        //
+        std::string                         f_domain = std::string();
+        std::int32_t                        f_ttl = 0;
+        advgetopt::string_list_t            f_ips = advgetopt::string_list_t();
+        advgetopt::string_list_t            f_nameservers = advgetopt::string_list_t();
+        std::string                         f_hostmaster = std::string();
+        std::uint32_t                       f_serial = 0;
+        std::int64_t                        f_refresh = 0;
+        std::int64_t                        f_retry = 0;
+        std::int64_t                        f_expire = 0;
+        std::int64_t                        f_minimum_cache_failures = 0;
+        advgetopt::string_list_t            f_mail_sub_domains = advgetopt::string_list_t();
+        std::int32_t                        f_mail_priority = -1;
+        std::int32_t                        f_mail_ttl = 0;
+        std::int32_t                        f_mail_default_ttl = 0;
+        bool                                f_dynamic = false;
+        advgetopt::conf_file::sections_t    f_sections = advgetopt::conf_file::sections_t();
     };
 
                             ipmgr(int argc, char * argv[]);
@@ -58,38 +130,13 @@ private:
     bool                    verbose() const;
     int                     make_root();
     int                     read_zones();
-    std::string             get_zone_param(
-                                  zone_files_t const & zone
-                                , std::string const & name
-                                , std::string const & default_name = std::string()
-                                , std::string const & default_value = std::string());
-    bool                    get_zone_bool(
-                                  zone_files_t const & zone
-                                , std::string const & name
-                                , std::string const & default_name = std::string()
-                                , std::string const & default_value = std::string());
-    std::int32_t            get_zone_integer(
-                                  zone_files_t const & zone
-                                , std::string const & name
-                                , std::string const & default_name = std::string()
-                                , std::int32_t default_value = 0);
-    std::int64_t            get_zone_duration(
-                                  zone_files_t const & zone
-                                , std::string const & name
-                                , std::string const & default_name = std::string()
-                                , std::string const & default_value = std::string());
-    std::string             get_zone_email(
-                                  zone_files_t const & zone
-                                , std::string const & name
-                                , std::string const & default_name
-                                , std::string const & default_value);
-    std::uint32_t           get_zone_serial(std::string const & domain, bool next = false);
-    int                     generate_zone(zone_files_t const & zone);
+    int                     generate_zone(zone_files::pointer_t & zone);
     int                     process_zones();
     int                     restart_bind9();
 
-    advgetopt::getopt       f_opt;
-    zone_files_t::map_t     f_zone_files = zone_files_t::map_t();
+    advgetopt::getopt::pointer_t
+                            f_opt = advgetopt::getopt::pointer_t();
+    zone_files::map_t       f_zone_files = zone_files::map_t();
     bool                    f_bind_restart_required = false;
     bool                    f_dry_run = false;
     bool                    f_verbose = false;

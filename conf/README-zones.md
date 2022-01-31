@@ -219,23 +219,27 @@ is documented below.
     dynamic=true
     nameservers="ns1.example.com ns2.example.com"
 
+    [server]
+    sub_domains=server
+
     [websites]
     sub_domains=${website_subdomains}
-    ips=10.0.2.1
     ttl=5m
+    cname=server
 
     [api]
-    sub_domain="rest api graphql"
+    sub_domain=rest api graphql
     ips=${api_ip}
 
     [mail]
     sub_domains="mail"
+    ips=10.0.2.1
     ttl=4w
     mail_priority=10
     mail_key=mail.example.com.key
 
     [info]
-    sub_domains="info"
+    sub_domains=info
     txt="description=this domain is the best"
 
 ### `domain` (global)
@@ -331,6 +335,22 @@ Defines a set of sub-domain names to be attached to this domain.
 You can have as many sub-domains defined in this list. All of these sub-domains
 will be given the same set of IPs, TTL, etc. as defined within this specialized
 sub-domains definition.
+
+### `cname` (specialized)
+
+The `cname` field gives the name of another sub-domain or the main domain.
+When present, this sub-domain will be assigned a `CNAME` instead of an `A`
+or `AAAA` field.
+
+    cname=server    # use server.<domain>.
+    cname=.         # use <domain>.
+
+Note that a `CNAME` means one extra request to your DNS. If you have multiple
+DNS in a large organization, then it certainly makes sense to make use of
+`CNAME`. In a small organization (under 1,000 sub-domains total), you probably
+want to use the `ips` field instead. After all, the syntax allows you to
+reuse variables where you can save your IPs so there is no real need for a
+`CNAME` in `ipmgr`.
 
 ### `[<name>]` (Start specialization)
 

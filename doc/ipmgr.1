@@ -1,0 +1,91 @@
+.TH IPMGR 1 "January 2022" "ipmgr 1.x" "User Commands"
+.SH NAME
+ipmgr \- Compile DNS definitions in .zone files
+.SH SYNOPSIS
+.B ipmgr
+[\fIOPTION\fR]...
+.SH DESCRIPTION
+Compile a set of DNS definitions found in simple INI like files to
+a set of DNS .zone files. Assuming the process works, then the
+tool attempts to restart BIND9 if anything changed.
+.SH "DYNAMIC ZONES"
+When a zone is marked as being dynamic (required by letsencrypt or
+simply if you want to be able to do tweaks on the fly), then
+a .zone file is saved under `/var/lib/ipmgr/generated', but it
+doesn't get used. Instead, the ipmgr tool sends all the necessary
+commands to update the zone dynamically. The file under the
+generated folder is used to know whether the data changed and if
+so proceed with the live update.
+.SH "COMMAND LINE OPTIONS"
+.TP
+\fB\-\-build\-date\fR
+Display the date and time when the tool was last built.
+.TP
+\fB\-\-config\-dir\fR \fISOURCE\fR
+Define a list of configuration directory to search for DNS definition
+files. The files have to end with .conf.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+print a brief document about the tool usage, then exit
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+print version number, then exit
+.TP
+\fB\-\-c-file\fR
+define the filename of a C file where to output the binary data which can
+then be statically compiled in the libtld library; this is used as the
+fallback data by the
+.BR tld (3)
+command
+.TP
+\fB\-\-output-json\fR
+output the data in a JSON file, the filename is the output filename with
+the .tld replaced with .json
+.TP
+\fB\-s\fR, \fB\-\-source\fR \fISOURCE\fR
+define the top directory of the directory tree of .ini files to compile
+.TP
+\fB\-\-verify\fR
+run the verification step which makes sure that the saved file can be
+reloaded and compared against the existing input data; this step uses the
+JSON output data to ensure equality
+.PP
+The \fB\-\-source\fR command line option changes the source directory tree.
+By default this is \fB`/usr/share/libtld/tlds'\fR. That directory includes a
+softlink named \fB`extensions'\fR pointing to \fB`/var/lib/libtld/tlds'\fR.
+The latter directory is where you are expected to add your own .ini files
+if you want to extend the list.
+.PP
+The \fB\-\-output\-json\fR command line option tells the compile to also
+generate a .json file. (\fBTODO:\fR create a version of the
+.BR tld (3)
+command in JavaScript.)
+.PP
+The \fB\-\-verify\fR command line option is used at compile time to make
+sure that the writing of the .tld file and the later loading of that data
+works as expected. You do not need to use that option if you are just
+updating your list of TLDs. The input files are verified either way and if
+there is an error in one of the .ini file, you will get an error message
+with a filename and line number with or without that option.
+.PP
+The \fB\-\-c\-file\fR command line option is also used at compile time.
+Actually, the project creates a temporary tool which sole purpose (nearly)
+is to generate the \fBtld_data.c\fR file so the library can include a
+statically defined fallback internally. This is a representation of the
+binary file in a C array.
+.SH AUTHOR
+Written by Alexis Wilke <alexis@m2osw.com>.
+.SH "REPORTING BUGS"
+Report bugs to <https://github.com/m2osw/ipmgr/issues>.
+.br
+ipmgr home page: <https://snapwebsites.org/project/ipmgr>.
+.SH COPYRIGHT
+Copyright \(co 2022 Made to Order Software Corporation
+.br
+License: GPLv3
+.br
+This is free software: you are free to change and redistribute it.
+.br
+There is NO WARRANTY, to the extent permitted by law.
+.SH "SEE ALSO"
+.BR named (8),
