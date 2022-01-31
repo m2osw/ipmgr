@@ -38,4 +38,12 @@ install(
         share/doc/ipmgr
 )
 
+install(
+    FILES
+        ipmgr.1
+
+    DESTINATION
+        share/man/man1
+)
+
 # vim: ts=4 sw=4 et nocindent

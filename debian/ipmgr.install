@@ -1,4 +1,5 @@
 usr/sbin/ipmgr
+usr/share/man
 conf/ipmgr.conf                                 etc/ipmgr/
 conf/README.md                                  etc/ipmgr/ipmgr.d/
 conf/README-zones.md                            etc/ipmgr/zones/
