@@ -15,7 +15,7 @@ Build-Depends: cmake,
     libtld-dev (>= 2.0.6.1~bionic),
     snapcmakemodules (>= 1.0.61.0~bionic),
     snapdev (>= 1.1.18.0~bionic),
-    snaplogger (>= 1.0.39.0~bionic)
+    snaplogger-dev (>= 1.0.39.0~bionic)
 Standards-Version: 3.9.4
 Homepage: https://snapwebsites.org/project/ipmgr
 Vcs-Git: https://github.com/m2osw/snapcpp.git
