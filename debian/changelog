@@ -1,3 +1,9 @@
+ipmgr (1.0.3.0~bionic) bionic; urgency=high
+
+  * Added cppthread-dev as a build dependency.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Wed, 02 Feb 2022 09:38:14 -0800
+
 ipmgr (1.0.2.1~bionic) bionic; urgency=high
 
   * Bumped build version to rebuild on Launchpad.
