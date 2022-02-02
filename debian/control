@@ -3,7 +3,7 @@ Section: net
 Priority: optional
 Maintainer: Alexis Wilke <alexis@m2osw.com>
 Build-Depends: cmake,
-    cppprocess-dev (>= 1.1.39.0~bionic),
+    cppprocess-dev (>= 1.1.40.0~bionic),
     debhelper,
     doxygen,
     eventdispatcher-dev (>= 1.1.37.0~bionic),
