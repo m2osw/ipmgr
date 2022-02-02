@@ -1,3 +1,9 @@
+ipmgr (1.0.0.3~bionic) bionic; urgency=high
+
+  * Bumped build version to rebuild on Launchpad.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Tue, 01 Feb 2022 21:42:17 -0800
+
 ipmgr (1.0.0.2~bionic) bionic; urgency=high
 
   * Bumped build version to rebuild on Launchpad.
