@@ -1,3 +1,9 @@
+ipmgr (1.0.2.1~bionic) bionic; urgency=high
+
+  * Bumped build version to rebuild on Launchpad.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Wed, 02 Feb 2022 09:03:20 -0800
+
 ipmgr (1.0.2.0~bionic) bionic; urgency=high
 
   * Use snaplogger-dev for compiling against this library.
