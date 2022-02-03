@@ -3,7 +3,7 @@
 
 To setup a zone we want to define one file with the zone info.
 
-By convention you create a file named after the corresponding dmoain. This
+By convention you create a file named after the corresponding domain. This
 file uses one of the advgetopt supported file formats, which in this case
 will look like a .ini file. A zone has a global area definition with the
 global parameters of the zone and then sections for your domains.

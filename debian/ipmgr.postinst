@@ -11,7 +11,12 @@ then
     #
     mkdir -p /etc/bind/zones/
     echo "# DO NOT EDIT, USE ipmgr ... TO REGENERATE THIS FILE" > /etc/bind/zones/ipmgr.conf
+    if test ! -f /etc/bind/named.conf.local.orig
+    then
+        cp /etc/bind/named.conf.local /etc/bind/named.conf.local.orig
+    fi
     sed \
+        -i.bak \
         -e '/^\(include "\/etc\/bind\/ipmgr-options.conf"\)/ {s//\1/;:a;n;ba;q}' \
         -e '$ainclude "/etc/bind/ipmgr-options.conf"' \
             /etc/bind/named.conf.local

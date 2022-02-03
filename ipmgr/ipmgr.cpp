@@ -1407,7 +1407,10 @@ std::string ipmgr::zone_files::generate_zone_file()
         verify_zone += zone_to_verify;
         if(f_verbose)
         {
-            std::cout << verify_zone << std::endl;
+            std::cout
+                << "info: "
+                << verify_zone
+                << std::endl;
         }
         int const r(system(verify_zone.c_str()));
         if(r != 0)
@@ -1512,19 +1515,34 @@ int ipmgr::read_zones()
 
     // get a list of all the files
     //
-    std::size_t const max(f_opt->size("zone-directories"));
+    std::size_t max(f_opt->size("zone-directories"));
     if(max == 0)
     {
-        // no zone directories specified?!
-        //
-        SNAP_LOG_FATAL
-            << "no zone directories specified (see --zone-directories)."
-            << SNAP_LOG_SEND;
-        return 0;
+        advgetopt::option_info::pointer_t opt(f_opt->get_option("zone-directories"));
+        if(!opt->set_multiple_values(f_opt->get_default("zone-directories")))
+        {
+            // no zone directories specified?!
+            //
+            SNAP_LOG_FATAL
+                << "the default --zone-directories ("
+                << f_opt->get_default("zone-directories")
+                << ") could not be parsed properly."
+                << SNAP_LOG_SEND;
+            return 0;
+        }
+        max = f_opt->size("zone-directories");
     }
     for(std::size_t i(0); i < max; ++i)
     {
         std::string dir(f_opt->get_string("zone-directories", i));
+        if(f_verbose)
+        {
+            std::cout
+                << "info: checking directory \""
+                << dir
+                << "\" for zone files."
+                << std::endl;
+        }
         std::string pattern(dir + "/*.conf");
         snapdev::glob_to_list<std::vector<std::string>> glob;
         if(!glob.read_path<
@@ -1763,7 +1781,10 @@ int ipmgr::restart_bind9()
 
     if(f_verbose)
     {
-        std::cout << is_active_process.get_command_line() << std::endl;
+        std::cout
+            << "info: "
+            << is_active_process.get_command_line()
+            << std::endl;
     }
 
     if(!f_dry_run)
@@ -1802,7 +1823,10 @@ int ipmgr::restart_bind9()
     char const * stop_bind9("systemctl stop bind9");
     if(f_verbose)
     {
-        std::cout << stop_bind9 << std::endl;
+        std::cout
+            << "info: "
+            << stop_bind9
+            << std::endl;
     }
     if(!f_dry_run)
     {
@@ -1823,7 +1847,10 @@ int ipmgr::restart_bind9()
     char const * clear_journals("rm -f /var/lib/bind9/*.jnl");
     if(f_verbose)
     {
-        std::cout << clear_journals << std::endl;
+        std::cout
+            << "info: "
+            << clear_journals
+            << std::endl;
     }
     if(!f_dry_run)
     {
@@ -1841,7 +1868,10 @@ int ipmgr::restart_bind9()
     char const * start_bind9("systemctl start bind9");
     if(f_verbose)
     {
-        std::cout << start_bind9 << std::endl;
+        std::cout
+            << "info: "
+            << start_bind9
+            << std::endl;
     }
     if(!f_dry_run)
     {
@@ -1863,7 +1893,10 @@ int ipmgr::restart_bind9()
     done_restart += g_bind9_need_restart;
     if(f_verbose)
     {
-        std::cout << done_restart << std::endl;
+        std::cout
+            << "info: "
+            << done_restart
+            << std::endl;
     }
     if(!f_dry_run)
     {
