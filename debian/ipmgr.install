@@ -3,5 +3,6 @@ usr/share/man
 conf/ipmgr.conf                                 etc/ipmgr/
 conf/README.md                                  etc/ipmgr/ipmgr.d/
 conf/README-zones.md                            etc/ipmgr/zones/
+conf/README-static-zones.md                     usr/share/ipmgr/zones
 conf/logger/ipmgr.conf                          etc/ipmgr/logger/
 conf/ipmgr-options.conf                         etc/bind/
