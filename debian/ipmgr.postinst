@@ -20,6 +20,10 @@ then
         -e '/^\(include "\/etc\/bind\/ipmgr-options.conf"\)/ {s//\1/;:a;n;ba;q}' \
         -e '$ainclude "/etc/bind/ipmgr-options.conf"' \
             /etc/bind/named.conf.local
+
+    # In most cases, it's not useful to run ipmgr on the first install,
+    # but on subsequent installations, it may be necessary to update the
+    # files to the latest version
     ipmgr
 
     if systemctl is-active named
