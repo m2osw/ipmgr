@@ -927,17 +927,17 @@ bool ipmgr::zone_files::retrieve_mail_fields()
     // list of sub-domains (default to "mail")
     //
     advgetopt::split_string(
-          get_zone_param(mail_section + "::sub_domains", std::string(), "mail")
-        , f_mail_sub_domains
+          get_zone_param(mail_section + "::subdomains", std::string(), "mail")
+        , f_mail_subdomains
         , {" ", ",", ";"});
 
-    for(auto const & sub_domain : f_mail_sub_domains)
+    for(auto const & subdomain : f_mail_subdomains)
     {
-        if(!validate_domain(sub_domain + '.' + f_domain))
+        if(!validate_domain(subdomain + '.' + f_domain))
         {
             SNAP_LOG_ERROR
                 << "Validation of mail sub-domain name \""
-                << sub_domain
+                << subdomain
                 << "\" failed. Please verify that it is valid."
                 << SNAP_LOG_SEND;
             return false;
@@ -1067,9 +1067,9 @@ std::string ipmgr::zone_files::generate_zone_file()
 
     // MX entries if this domain supports mail
     //
-    if(!f_mail_sub_domains.empty())
+    if(!f_mail_subdomains.empty())
     {
-        for(auto const & sub_domain : f_mail_sub_domains)
+        for(auto const & subdomain : f_mail_subdomains)
         {
             zone_data << "\t";
             if(f_mail_ttl > 0)
@@ -1091,7 +1091,7 @@ std::string ipmgr::zone_files::generate_zone_file()
             {
                 zone_data << ' ' << f_mail_priority;
             }
-            zone_data << '\t' << sub_domain << '.' << f_domain << ".\n";
+            zone_data << '\t' << subdomain << '.' << f_domain << ".\n";
 
             // TODO: look into automatically handling the mail server keys
             //
@@ -1128,7 +1128,7 @@ std::string ipmgr::zone_files::generate_zone_file()
     // afterward we write the strings in the set to the zone_data
     //
     std::set<std::string> sorted_domains;
-    std::set<std::string> sorted_sub_domains;
+    std::set<std::string> sorted_subdomains;
     for(auto const & s : f_sections)
     {
         if(s == g_iplock_options_environment.f_section_variables_name)
@@ -1145,19 +1145,19 @@ std::string ipmgr::zone_files::generate_zone_file()
         // we use the name to access the info of that section, which
         // describes one or more sub-domains
         //
-        std::int32_t const sub_domain_ttl(get_zone_duration(s + "::ttl", std::string(), "0"));
-        if(sub_domain_ttl < 0)
+        std::int32_t const subdomain_ttl(get_zone_duration(s + "::ttl", std::string(), "0"));
+        if(subdomain_ttl < 0)
         {
             return std::string();
         }
 
-        advgetopt::string_list_t sub_domain_txt;
+        advgetopt::string_list_t subdomain_txt;
         advgetopt::split_string(
               get_zone_param(s + "::txt")
-            , sub_domain_txt
+            , subdomain_txt
             , {" +++ "});
 
-        std::string const sub_domains(get_zone_param(s + "::sub_domains"));
+        std::string const subdomains(get_zone_param(s + "::subdomains"));
 
         if(s[0] == 'g'      // section name starts with 'global-'
         && s[1] == 'l'
@@ -1167,7 +1167,7 @@ std::string ipmgr::zone_files::generate_zone_file()
         && s[5] == 'l'
         && s[6] == '-')
         {
-            if(!sub_domains.empty())
+            if(!subdomains.empty())
             {
                 SNAP_LOG_ERROR
                     << "global sections of a zone file definition must not include a list of sub-domains."
@@ -1188,7 +1188,7 @@ std::string ipmgr::zone_files::generate_zone_file()
                     << SNAP_LOG_SEND;
                 return std::string();
             }
-            if(sub_domain_txt.empty())
+            if(subdomain_txt.empty())
             {
                 SNAP_LOG_ERROR
                     << "a sub-domain global section must have one  txt=... entry."
@@ -1196,16 +1196,16 @@ std::string ipmgr::zone_files::generate_zone_file()
                 return std::string();
             }
 
-            for(auto const & txt : sub_domain_txt)
+            for(auto const & txt : subdomain_txt)
             {
                 std::stringstream ss;
 
                 ss << '\t';
 
-                if(sub_domain_ttl != 0
-                && sub_domain_ttl != f_ttl)
+                if(subdomain_ttl != 0
+                && subdomain_ttl != f_ttl)
                 {
-                    ss << sub_domain_ttl << ' ';
+                    ss << subdomain_ttl << ' ';
                 }
 
                 ss << "TXT\t\"" << txt << '"';
@@ -1215,7 +1215,7 @@ std::string ipmgr::zone_files::generate_zone_file()
         }
         else
         {
-            if(sub_domains.empty())
+            if(subdomains.empty())
             {
                 SNAP_LOG_ERROR
                     << "non-global sections of a zone file definition must include a list of one or more sub-domains."
@@ -1225,26 +1225,26 @@ std::string ipmgr::zone_files::generate_zone_file()
 
             std::string const cname(get_zone_param(s + "::cname"));
 
-            advgetopt::string_list_t sub_domain_names;
+            advgetopt::string_list_t subdomain_names;
             advgetopt::split_string(
-                  sub_domains
-                , sub_domain_names
+                  subdomains
+                , subdomain_names
                 , {" ", ",", ";"});
 
-            advgetopt::string_list_t sub_domain_ips;
+            advgetopt::string_list_t subdomain_ips;
             advgetopt::split_string(
                   get_zone_param(s + "::ips")
-                , sub_domain_ips
+                , subdomain_ips
                 , {" ", ",", ";"});
-            if(sub_domain_ips.empty()
-            && sub_domain_txt.empty()
+            if(subdomain_ips.empty()
+            && subdomain_txt.empty()
             && cname.empty())
             {
-                sub_domain_ips = f_ips;
+                subdomain_ips = f_ips;
             }
 
-            if(((sub_domain_ips.empty() ? 0 : 1)
-                 + (sub_domain_txt.empty() ? 0 : 1)
+            if(((subdomain_ips.empty() ? 0 : 1)
+                 + (subdomain_txt.empty() ? 0 : 1)
                  + (cname.empty() ? 0 : 1)) > 1)
             {
                 SNAP_LOG_ERROR
@@ -1253,8 +1253,8 @@ std::string ipmgr::zone_files::generate_zone_file()
                 return std::string();
             }
 
-            if(sub_domain_ips.empty()
-            && sub_domain_txt.empty()
+            if(subdomain_ips.empty()
+            && subdomain_txt.empty()
             && cname.empty())
             {
                 SNAP_LOG_ERROR
@@ -1263,48 +1263,48 @@ std::string ipmgr::zone_files::generate_zone_file()
                 return std::string();
             }
 
-            if(!sub_domain_ips.empty())
+            if(!subdomain_ips.empty())
             {
-                if(!validate_ips(sub_domain_ips))
+                if(!validate_ips(subdomain_ips))
                 {
                     return std::string();
                 }
             }
 
-            for(auto const & d : sub_domain_names)
+            for(auto const & d : subdomain_names)
             {
-                if(!sub_domain_txt.empty())
+                if(!subdomain_txt.empty())
                 {
-                    for(auto const & txt : sub_domain_txt)
+                    for(auto const & txt : subdomain_txt)
                     {
                         std::stringstream ss;
 
                         ss << d << '\t';
 
-                        if(sub_domain_ttl != 0
-                        && sub_domain_ttl != f_ttl)
+                        if(subdomain_ttl != 0
+                        && subdomain_ttl != f_ttl)
                         {
-                            ss << sub_domain_ttl << ' ';
+                            ss << subdomain_ttl << ' ';
                         }
 
                         ss << "TXT\t\"" << txt << '"';
 
-                        sorted_sub_domains.insert(ss.str());
+                        sorted_subdomains.insert(ss.str());
                     }
                 }
 
-                if(!sub_domain_ips.empty())
+                if(!subdomain_ips.empty())
                 {
-                    for(auto const & ip : sub_domain_ips)
+                    for(auto const & ip : subdomain_ips)
                     {
                         std::stringstream ss;
 
                         ss << d << '\t';
 
-                        if(sub_domain_ttl != 0
-                        && sub_domain_ttl != f_ttl)
+                        if(subdomain_ttl != 0
+                        && subdomain_ttl != f_ttl)
                         {
-                            ss << sub_domain_ttl << ' ';
+                            ss << subdomain_ttl << ' ';
                         }
 
                         addr::addr_parser parser;
@@ -1325,7 +1325,7 @@ std::string ipmgr::zone_files::generate_zone_file()
                         }
                         ss << "\t" << a.to_ipv4or6_string(addr::addr::string_ip_t::STRING_IP_ONLY);
 
-                        sorted_sub_domains.insert(ss.str());
+                        sorted_subdomains.insert(ss.str());
                     }
                 }
 
@@ -1335,10 +1335,10 @@ std::string ipmgr::zone_files::generate_zone_file()
 
                     ss << d << '\t';
 
-                    if(sub_domain_ttl != 0
-                    && sub_domain_ttl != f_ttl)
+                    if(subdomain_ttl != 0
+                    && subdomain_ttl != f_ttl)
                     {
-                        ss << sub_domain_ttl << ' ';
+                        ss << subdomain_ttl << ' ';
                     }
 
                     ss << "CNAME\t";
@@ -1371,7 +1371,7 @@ std::string ipmgr::zone_files::generate_zone_file()
                         ss << link << '.';
                     }
 
-                    sorted_sub_domains.insert(ss.str());
+                    sorted_subdomains.insert(ss.str());
                 }
             }
         }
@@ -1386,7 +1386,7 @@ std::string ipmgr::zone_files::generate_zone_file()
     //
     zone_data << "$ORIGIN " << f_domain << ".\n";
 
-    for(auto const & d : sorted_sub_domains)
+    for(auto const & d : sorted_subdomains)
     {
         zone_data << d << '\n';
     }

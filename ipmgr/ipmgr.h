@@ -113,7 +113,7 @@ public:
         std::int64_t                        f_retry = 0;
         std::int64_t                        f_expire = 0;
         std::int64_t                        f_minimum_cache_failures = 0;
-        advgetopt::string_list_t            f_mail_sub_domains = advgetopt::string_list_t();
+        advgetopt::string_list_t            f_mail_subdomains = advgetopt::string_list_t();
         std::int32_t                        f_mail_priority = -1;
         std::int32_t                        f_mail_ttl = 0;
         std::int32_t                        f_mail_default_ttl = 0;
