@@ -1,3 +1,9 @@
+ipmgr (1.0.6.0~bionic) bionic; urgency=high
+
+  * Create the serial directory so things work.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sun, 06 Feb 2022 10:28:53 -0800
+
 ipmgr (1.0.5.0~bionic) bionic; urgency=high
 
   * Create the folders `/var/lib/ipmgr/zones` and `/usr/share/ipmgr/zones`.

@@ -43,7 +43,7 @@ do so using different numbers).
     [variables]
     <name>=<value>
 
-The default timings defined user are put as the _Start of Authority_ (SOA)
+The default timings defined here are used as the _Start of Authority_ (SOA)
 timings. They can be overridden by a specific domain and by a specific
 sub-domain. More information about these fields can be found on
 (Wikipedia)[https://en.wikipedia.org/wiki/SOA_record].
