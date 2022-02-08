@@ -1,3 +1,9 @@
+ipmgr (1.0.10.0~bionic) bionic; urgency=high
+
+  * The include command in bind config needs to end with a semi-colon.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Tue, 08 Feb 2022 13:02:28 -0800
+
 ipmgr (1.0.9.0~bionic) bionic; urgency=high
 
   * Added error messages on any value which can't be loaded successfully.

@@ -1880,7 +1880,7 @@ int ipmgr::restart_bind9()
     // we do not want to force a stop & start if the process is not currently
     // active (i.e. it may have been stopped by the user for a while)
     //
-    cppprocess::process is_active_process("is-active?");
+    cppprocess::process is_active_process("bind9-is-active?");
     is_active_process.set_command("systemctl");
     is_active_process.add_argument("is-active");
     is_active_process.add_argument("bind9");
