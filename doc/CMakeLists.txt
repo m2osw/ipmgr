@@ -17,11 +17,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-project(documentation)
 
 ##
 ## Documentation
 ##
+project(ipmgr-documentation)
+
 find_package(SnapDoxygen QUIET)
 AddDoxygenTarget(ipmgr
     ${IPMGR_VERSION_MAJOR}
