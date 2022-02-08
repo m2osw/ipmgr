@@ -652,7 +652,7 @@ std::uint32_t ipmgr::zone_files::get_zone_serial(bool next)
 
     std::string path("/var/lib/ipmgr/serial/" + f_domain + ".counter");
 
-    std::uint32_t serial(0);
+    std::uint32_t serial(1);
 
     struct stat s = {};
     if(stat(path.c_str(), &s) != 0
@@ -762,7 +762,17 @@ bool ipmgr::zone_files::retrieve_ttl()
     {
         f_ttl = 60; // 1m minimum
     }
-    return f_ttl >= 0;
+    if(f_ttl < 0)
+    {
+        SNAP_LOG_ERROR
+            << "Domain \""
+            << f_domain
+            << "\" has an invalid TTL definition."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -844,35 +854,91 @@ bool ipmgr::zone_files::retrieve_hostmaster()
                               "hostmaster"
                             , "default_hostmaster"
                             , default_hostmaster);
-    return !f_hostmaster.empty();
+    if(f_hostmaster.empty())
+    {
+        // this should never happen since we have a default
+        //
+        SNAP_LOG_ERROR
+            << "Host master email address for \""
+            << f_domain
+            << "\" is empty."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+
+    return true;
 }
 
 
 bool ipmgr::zone_files::retrieve_serial()
 {
     f_serial = get_zone_serial();
-    return f_serial != 0;
+
+    if(f_serial == 0)
+    {
+        SNAP_LOG_ERROR
+            << "Serial for \""
+            << f_domain
+            << "\" is zero."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+
+    return true;
 }
 
 
 bool ipmgr::zone_files::retrieve_refresh()
 {
     f_refresh = get_zone_duration("refresh", "default_refresh", "3h");
-    return f_refresh >= 0;
+
+    if(f_refresh < 0)
+    {
+        SNAP_LOG_ERROR
+            << "Invalid SOA refresh time for \""
+            << f_domain
+            << "\"."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+
+    return true;
 }
 
 
 bool ipmgr::zone_files::retrieve_retry()
 {
     f_retry = get_zone_duration("retry", "default_retry", "3m");
-    return f_retry >= 0;
+
+    if(f_retry < 0)
+    {
+        SNAP_LOG_ERROR
+            << "Invalid SOA retry time for \""
+            << f_domain
+            << "\"."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+
+    return true;
 }
 
 
 bool ipmgr::zone_files::retrieve_expire()
 {
     f_expire = get_zone_duration("expire", "default_expire", "2w");
-    return f_expire >= 0;
+
+    if(f_expire < 0)
+    {
+        SNAP_LOG_ERROR
+            << "Invalid SOA expire time for \""
+            << f_domain
+            << "\"."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -882,11 +948,22 @@ bool ipmgr::zone_files::retrieve_minimum_cache_failures()
                                   "minimum_cache_failures"
                                 , "default_minimum_cache_failures"
                                 , "5m");
-    return f_minimum_cache_failures >= 0;
+
+    if(f_minimum_cache_failures < 0)
+    {
+        SNAP_LOG_ERROR
+            << "Invalid SOA minimum cache failures time for \""
+            << f_domain
+            << "\"."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+
+    return true;
 }
 
 
-// TODO: each sub-domain needs its own priority, TTL, etc.
+// TODO: each subdomain needs its own priority, TTL, etc.
 //       with the current scheme we do not support such; for now
 //       we really only support one mail service per domain;
 //       you can still use a round robbin (multiple IPs), or even better,
@@ -924,7 +1001,7 @@ bool ipmgr::zone_files::retrieve_mail_fields()
         return false;
     }
 
-    // list of sub-domains (default to "mail")
+    // list of subdomains (default to "mail")
     //
     advgetopt::split_string(
           get_zone_param(mail_section + "::subdomains", std::string(), "mail")
@@ -936,7 +1013,7 @@ bool ipmgr::zone_files::retrieve_mail_fields()
         if(!validate_domain(subdomain + '.' + f_domain))
         {
             SNAP_LOG_ERROR
-                << "Validation of mail sub-domain name \""
+                << "Validation of mail subdomain name \""
                 << subdomain
                 << "\" failed. Please verify that it is valid."
                 << SNAP_LOG_SEND;
@@ -1123,7 +1200,7 @@ std::string ipmgr::zone_files::generate_zone_file()
         zone_data << '\t' << a.to_ipv4or6_string(addr::addr::string_ip_t::STRING_IP_ONLY) << '\n';
     }
 
-    // we want all the sub-domains sorted so we use this intermediate
+    // we want all the subdomains sorted so we use this intermediate
     // std::stringstream to generate a string that we save in a set and
     // afterward we write the strings in the set to the zone_data
     //
@@ -1143,7 +1220,7 @@ std::string ipmgr::zone_files::generate_zone_file()
 
         // the name of a section is just that, a name
         // we use the name to access the info of that section, which
-        // describes one or more sub-domains
+        // describes one or more subdomains
         //
         std::int32_t const subdomain_ttl(get_zone_duration(s + "::ttl", std::string(), "0"));
         if(subdomain_ttl < 0)
@@ -1170,7 +1247,7 @@ std::string ipmgr::zone_files::generate_zone_file()
             if(!subdomains.empty())
             {
                 SNAP_LOG_ERROR
-                    << "global sections of a zone file definition must not include a list of sub-domains."
+                    << "global sections of a zone file definition must not include a list of subdomains."
                     << SNAP_LOG_SEND;
                 return std::string();
             }
@@ -1191,7 +1268,7 @@ std::string ipmgr::zone_files::generate_zone_file()
             if(subdomain_txt.empty())
             {
                 SNAP_LOG_ERROR
-                    << "a sub-domain global section must have one  txt=... entry."
+                    << "a subdomain global section must have one  txt=... entry."
                     << SNAP_LOG_SEND;
                 return std::string();
             }
@@ -1218,7 +1295,11 @@ std::string ipmgr::zone_files::generate_zone_file()
             if(subdomains.empty())
             {
                 SNAP_LOG_ERROR
-                    << "non-global sections of a zone file definition must include a list of one or more sub-domains."
+                    << "non-global section \""
+                    << s
+                    << "\" of zone \""
+                    << f_domain
+                    << "\" must include a list of one or more subdomains."
                     << SNAP_LOG_SEND;
                 return std::string();
             }
@@ -1248,7 +1329,7 @@ std::string ipmgr::zone_files::generate_zone_file()
                  + (cname.empty() ? 0 : 1)) > 1)
             {
                 SNAP_LOG_ERROR
-                    << "a sub-domain must have only one of IP addresses, a cname=..., or a txt=... field defined simultaneously."
+                    << "a subdomain must have only one of IP addresses, a cname=..., or a txt=... field defined simultaneously."
                     << SNAP_LOG_SEND;
                 return std::string();
             }
@@ -1258,7 +1339,7 @@ std::string ipmgr::zone_files::generate_zone_file()
             && cname.empty())
             {
                 SNAP_LOG_ERROR
-                    << "a sub-domain must have at least one IP address, a cname=..., or a txt=... field defined."
+                    << "a subdomain must have at least one IP address, a cname=..., or a txt=... field defined."
                     << SNAP_LOG_SEND;
                 return std::string();
             }
@@ -1366,7 +1447,7 @@ std::string ipmgr::zone_files::generate_zone_file()
                             return std::string();
                         }
 
-                        // assume cname is a sub-domain of this domain
+                        // assume cname is a subdomain of this domain
                         //
                         ss << link << '.';
                     }
@@ -1382,7 +1463,7 @@ std::string ipmgr::zone_files::generate_zone_file()
         zone_data << d << '\n';
     }
 
-    // switch to the sub-domains now
+    // switch to the subdomains now
     //
     zone_data << "$ORIGIN " << f_domain << ".\n";
 
@@ -1399,7 +1480,15 @@ std::string ipmgr::zone_files::generate_zone_file()
         std::string const zone_to_verify("/run/ipmgr/verify.zone");
         snapdev::file_contents temp(zone_to_verify, true, true);
         temp.contents(zone_data.str());
-        temp.write_all();
+        if(!temp.write_all())
+        {
+            SNAP_LOG_FATAL
+                << "the generated zone could not be saved in \""
+                << zone_to_verify
+                << "\" for verification."
+                << SNAP_LOG_SEND;
+            return std::string();
+        }
 
         std::string verify_zone("named-checkzone ");
         verify_zone += f_domain;
@@ -1511,8 +1600,6 @@ int ipmgr::make_root()
  */
 int ipmgr::read_zones()
 {
-    int exit_code(0);
-
     // get a list of all the files
     //
     std::size_t max(f_opt->size("zone-directories"));
@@ -1528,10 +1615,12 @@ int ipmgr::read_zones()
                 << f_opt->get_default("zone-directories")
                 << ") could not be parsed properly."
                 << SNAP_LOG_SEND;
-            return 0;
+            return 1;
         }
         max = f_opt->size("zone-directories");
     }
+
+    int exit_code(0);
     for(std::size_t i(0); i < max; ++i)
     {
         std::string dir(f_opt->get_string("zone-directories", i));
@@ -1571,7 +1660,9 @@ int ipmgr::read_zones()
                 // levels to confirm that everything is as it has to be
                 //
                 SNAP_LOG_ERROR
-                    << "a domain name cannot be an empty string."
+                    << "a domain name cannot be an empty string in \""
+                    << g
+                    << "\"."
                     << SNAP_LOG_SEND;
                 exit_code = 1;
                 continue;
@@ -1610,6 +1701,15 @@ int ipmgr::read_zones()
                 f_zone_files[domain] = std::make_shared<zone_files>(f_opt, f_verbose);
             }
             f_zone_files[domain]->add(zone_file);
+
+            if(f_verbose)
+            {
+                std::cout
+                    << "info: found configuration file \""
+                    << g
+                    << "\"."
+                    << std::endl;
+            }
         }
     }
     if(f_zone_files.empty())
@@ -1640,6 +1740,15 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
     if(!zone->retrieve_fields())
     {
         return 1;
+    }
+
+    if(f_verbose)
+    {
+        std::cout
+            << "info: generating zone for \""
+            << zone->domain()
+            << "\"."
+            << std::endl;
     }
 
     std::string z(zone->generate_zone_file());
