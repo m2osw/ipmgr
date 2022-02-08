@@ -1,3 +1,10 @@
+ipmgr (1.0.11.0~bionic) bionic; urgency=high
+
+  * The ipmgr failures in the postinst script are problematic, making it a
+    warning instead.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Tue, 08 Feb 2022 13:31:01 -0800
+
 ipmgr (1.0.10.0~bionic) bionic; urgency=high
 
   * The include command in bind config needs to end with a semi-colon.
