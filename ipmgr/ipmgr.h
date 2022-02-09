@@ -147,6 +147,7 @@ private:
     bool                    verbose() const;
     int                     make_root();
     int                     read_zones();
+    int                     prepare_includes();
     int                     generate_zone(zone_files::pointer_t & zone);
     int                     save_conf_files();
     int                     process_zones();
@@ -156,6 +157,7 @@ private:
                             f_opt = advgetopt::getopt::pointer_t();
     zone_files::map_t       f_zone_files = zone_files::map_t();
     conf_map_t              f_zone_conf = {}; // indexed by group name
+    std::ofstream           f_includes = std::ofstream();
     bool                    f_bind_restart_required = false;
     bool                    f_dry_run = false;
     bool                    f_verbose = false;

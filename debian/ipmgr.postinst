@@ -21,6 +21,12 @@ then
         -e '$ainclude "/etc/bind/ipmgr-options.conf";' \
             /etc/bind/named.conf.local
 
+    # We re-run ipmgr below so we can delete this file before then but in
+    # case ipmgr doesn't work, having this file will help restarting bind
+    #
+    echo "// AUTO-GENERATED, DO NOT EDIT" > /etc/bind/ipmgr-options.conf
+    echo "// see ipmgr(1) for details" >> /etc/bind/ipmgr-options.conf
+
     # Create the folder for dynamic zones
     #
     mkdir -p /var/lib/ipmgr/zones

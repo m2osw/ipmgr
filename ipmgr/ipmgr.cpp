@@ -1772,6 +1772,29 @@ int ipmgr::read_zones()
 }
 
 
+int ipmgr::prepare_includes()
+{
+    std::string const includes_filename("/etc/bind/ipmgr-options.conf");
+
+    f_includes.open(includes_filename);
+    if(!f_includes.is_open())
+    {
+        SNAP_LOG_ERROR
+            << "could not create file \""
+            << includes_filename
+            << "\"."
+            << SNAP_LOG_SEND;
+        return 1;
+    }
+
+    f_includes
+        << "// AUTO-GENERATED, DO NOT EDIT\n"
+        << "\n";
+
+    return 0;
+}
+
+
 /** \brief Generate one zone.
  *
  * This function generates one zone from the specified configuration
@@ -1797,6 +1820,14 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
             << std::endl;
     }
 
+    if(f_zone_conf[zone->group()].str().empty())
+    {
+        f_includes
+            << "include \"/etc/bind/zones/"
+            << zone->group()
+            << ".conf\";\n";
+    }
+
     std::string z(zone->generate_zone_file());
     if(z.empty())
     {
@@ -1820,8 +1851,8 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
     if(f_zone_conf[zone->group()].str().empty())
     {
         f_zone_conf[zone->group()]
-            << "# AUTO-GENERATED FILE, DO NOT EDIT\n"
-            << "# see ipmgr(1) instead\n"
+            << "// AUTO-GENERATED FILE, DO NOT EDIT\n"
+            << "// see ipmgr(1) instead\n"
             << "\n";
     }
 
@@ -1981,6 +2012,12 @@ int ipmgr::process_zones()
     int r(0);
 
     r = read_zones();
+    if(r != 0)
+    {
+        return r;
+    }
+
+    r = prepare_includes();
     if(r != 0)
     {
         return r;
