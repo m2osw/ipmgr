@@ -93,7 +93,6 @@
 #include    <iostream>
 #include    <fstream>
 #include    <set>
-#include    <sstream>
 
 
 // snapdev lib
@@ -137,6 +136,14 @@ advgetopt::option const g_ipmgr_options[] =
                     , advgetopt::GETOPT_FLAG_PROCESS_VARIABLES>())
         , advgetopt::DefaultValue("2w")
         , advgetopt::Help("Define the amount of time to remember a value for even if stale.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("default-group")
+        , advgetopt::Flags(advgetopt::all_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+                    , advgetopt::GETOPT_FLAG_REQUIRED
+                    , advgetopt::GETOPT_FLAG_PROCESS_VARIABLES>())
+        , advgetopt::Help("Default group name.")
     ),
     advgetopt::define_option(
           advgetopt::Name("default-hostmaster")
@@ -710,6 +717,7 @@ bool ipmgr::zone_files::retrieve_fields()
     {
         // WARNING: for some fields, the order matters
         //
+        &ipmgr::zone_files::retrieve_group,
         &ipmgr::zone_files::retrieve_domain,
         &ipmgr::zone_files::retrieve_ttl,
         &ipmgr::zone_files::retrieve_ips,
@@ -732,6 +740,16 @@ bool ipmgr::zone_files::retrieve_fields()
             return false;
         }
     }
+
+    return true;
+}
+
+
+bool ipmgr::zone_files::retrieve_group()
+{
+    // the group is optional; if not defined, use a default
+    //
+    f_group = get_zone_param("group", "default_group", "domains");
 
     return true;
 }
@@ -1059,7 +1077,29 @@ bool ipmgr::zone_files::retrieve_mail_fields()
 
 bool ipmgr::zone_files::retrieve_dynamic()
 {
-    f_dynamic = get_zone_bool("dynamic", std::string(), "false");
+    std::string const dynamic(get_zone_param("dynamic"));
+    if(dynamic.empty() || dynamic == "static")
+    {
+        f_dynamic = dynamic_t::DYNAMIC_STATIC;
+    }
+    else if(dynamic == "letsencrypt")
+    {
+        f_dynamic = dynamic_t::DYNAMIC_LETSENCRYPT;
+    }
+    else if(dynamic == "local")
+    {
+        f_dynamic = dynamic_t::DYNAMIC_LOCAL;
+    }
+    else
+    {
+        SNAP_LOG_ERROR
+            << "Validation of dynamic keywrod \""
+            << dynamic
+            << "\" failed. Please try with \"static\", \"letsencrypt\", or \"local\"."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+
     return true;
 }
 
@@ -1073,6 +1113,12 @@ bool ipmgr::zone_files::retrieve_all_sections()
     }
 
     return true;
+}
+
+
+std::string ipmgr::zone_files::group() const
+{
+    return f_group;
 }
 
 
@@ -1091,7 +1137,7 @@ std::string ipmgr::zone_files::domain() const
 }
 
 
-bool ipmgr::zone_files::is_dynamic() const
+ipmgr::zone_files::dynamic_t ipmgr::zone_files::dynamic() const
 {
     return f_dynamic;
 }
@@ -1103,7 +1149,7 @@ std::string ipmgr::zone_files::generate_zone_file()
 
     // warning
     zone_data << "; WARNING -- auto-generated file; see `man ipmgr` for details.\n";
-    if(f_dynamic)
+    if(f_dynamic != dynamic_t::DYNAMIC_STATIC)
     {
         zone_data << ";\n";
         zone_data << ";            this file represents our original but it is not used\n";
@@ -1759,10 +1805,57 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
         return 1;
     }
 
+// TODO: use a template to generate the zone_conf files (instead of the
+//       dynamic parameter, use a template=... where you can define
+//       the name of the template which gives us the parameters to use
+//       all in one place and especially editable by users and yo'd be
+//       able to create any number of templates)
+
+    // we must insert all the zones in the configuration file, even if we
+    // do not regenerate some of them because they are already up to date
+    //
+    // otherwise the .conf file would be missing those entries and that
+    // would be really bad!
+    //
+    if(f_zone_conf[zone->group()].str().empty())
+    {
+        f_zone_conf[zone->group()]
+            << "# AUTO-GENERATED FILE, DO NOT EDIT\n"
+            << "# see ipmgr(1) instead\n"
+            << "\n";
+    }
+
+    f_zone_conf[zone->group()]
+        << "zone \""
+        << zone->domain()
+        << "\" {\n"
+        << "  type master;\n"
+        << "  file \""
+            << (zone->dynamic() != zone_files::dynamic_t::DYNAMIC_STATIC
+                    ? std::string("/var/lib/bind")
+                    : "/etc/bind/zones/" + zone->group())
+            << '/'
+            << zone->domain()
+            << ".zone"
+            << "\";\n"
+        << "  allow-transfer { trusted-servers; }\n"
+        << (zone->dynamic() == zone_files::dynamic_t::DYNAMIC_LETSENCRYPT
+                ? "  check-names warn;\n"
+                  "  update-policy {\n"
+                  "    grant letsencrypt_wildcard. name _acme-challenge." + zone->domain() + ". txt;\n"
+                  "  };\n"
+                : std::string())
+        << (zone->dynamic() == zone_files::dynamic_t::DYNAMIC_LOCAL
+                ? "  update-policy local;\n"
+                  "  max-journal-size 2M;\n"
+                : std::string())
+        << "};\n"
+        << "\n";
+
     // compare with existing file, if it changed, then we raise a flag
     // about that
     //
-    std::string const zone_filename("/var/lib/ipmgr/generated/" + zone->domain() + "/" + zone->domain() + ".zone");
+    std::string const zone_filename("/var/lib/ipmgr/generated/" + zone->group() + "/" + zone->domain() + ".zone");
 
     snapdev::file_contents file(zone_filename, true);
     if(file.exists()
@@ -1810,16 +1903,67 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
         return 1;
     }
 
-    if(!zone->is_dynamic())
+    if(zone->dynamic() == zone_files::dynamic_t::DYNAMIC_STATIC)
     {
-        // static file, we're done
+        // static zones also get saved under /etc/bind/zones/<group>/...
         //
+        std::string const bind_filename("/etc/bind/zones/" + zone->group() + "/" + zone->domain() + ".zone");
+
+        snapdev::file_contents bind(bind_filename, true);
+        bind.contents(z);
+        if(!bind.write_all())
+        {
+            SNAP_LOG_ERROR
+                << "could not write to file \""
+                << bind_filename
+                << "\": "
+                << bind.last_error()
+                << SNAP_LOG_SEND;
+            return 1;
+        }
+
         return 0;
     }
 
     // this is a dynamic zone, so we have to actually manually update
     // it instead of just saving a static file and restarting bind9
     //
+
+    return 0;
+}
+
+
+/** \brief Save the configuration files.
+ *
+ * Each group of zones is given a configuration file with the bind syntax
+ * referencing the zone files included in that group.
+ *
+ * This function saves the resulting configuration files to disk under
+ * the /etc/bind/zones/... directory.
+ *
+ * The files were generated in the generate_zone() function.
+ */
+int ipmgr::save_conf_files()
+{
+    for(auto & ss : f_zone_conf)
+    {
+        std::string conf_filename("/etc/bind/zones/");
+        conf_filename += ss.first;
+        conf_filename += ".conf";
+
+        snapdev::file_contents conf(conf_filename, true);
+        conf.contents(ss.second.str());
+        if(!conf.write_all())
+        {
+            SNAP_LOG_ERROR
+                << "could not write to file \""
+                << conf_filename
+                << "\": "
+                << conf.last_error()
+                << SNAP_LOG_SEND;
+            return 1;
+        }
+    }
 
     return 0;
 }
@@ -1849,6 +1993,12 @@ int ipmgr::process_zones()
         {
             return r;
         }
+    }
+
+    r = save_conf_files();
+    if(r != 0)
+    {
+        return r;
     }
 
     return 0;

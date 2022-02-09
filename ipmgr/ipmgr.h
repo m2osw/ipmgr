@@ -31,6 +31,11 @@
 #include    <advgetopt/conf_file.h>
 
 
+// C++ lib
+//
+#include    <sstream>
+
+
 
 class ipmgr
 {
@@ -42,6 +47,13 @@ public:
         typedef std::shared_ptr<zone_files>                     pointer_t;
         typedef std::map<std::string, pointer_t>                map_t;
         typedef std::vector<advgetopt::conf_file::pointer_t>    config_array_t;
+
+        enum class dynamic_t
+        {
+            DYNAMIC_STATIC,     // not dynamic...
+            DYNAMIC_LOCAL,
+            DYNAMIC_LETSENCRYPT,
+        };
 
                                 zone_files(
                                       advgetopt::getopt::pointer_t opt
@@ -71,11 +83,13 @@ public:
                                     , std::string const & default_value);
 
         bool                    retrieve_fields();
+        std::string             group() const;
         std::string             domain() const;
-        bool                    is_dynamic() const;
+        dynamic_t               dynamic() const;
         std::string             generate_zone_file();
 
     private:
+        bool                    retrieve_group();
         bool                    retrieve_domain();
         bool                    retrieve_ttl();
         bool                    retrieve_ips();
@@ -103,6 +117,7 @@ public:
 
         // these get defined when we call the retrive_fields() function
         //
+        std::string                         f_group = std::string();
         std::string                         f_domain = std::string();
         std::int32_t                        f_ttl = 0;
         advgetopt::string_list_t            f_ips = advgetopt::string_list_t();
@@ -117,7 +132,7 @@ public:
         std::int32_t                        f_mail_priority = -1;
         std::int32_t                        f_mail_ttl = 0;
         std::int32_t                        f_mail_default_ttl = 0;
-        bool                                f_dynamic = false;
+        dynamic_t                           f_dynamic = dynamic_t::DYNAMIC_STATIC;
         advgetopt::conf_file::sections_t    f_sections = advgetopt::conf_file::sections_t();
     };
 
@@ -126,17 +141,21 @@ public:
     int                     run();
 
 private:
+    typedef std::map<std::string, std::stringstream>    conf_map_t;
+
     bool                    dry_run() const;
     bool                    verbose() const;
     int                     make_root();
     int                     read_zones();
     int                     generate_zone(zone_files::pointer_t & zone);
+    int                     save_conf_files();
     int                     process_zones();
     int                     restart_bind9();
 
     advgetopt::getopt::pointer_t
                             f_opt = advgetopt::getopt::pointer_t();
     zone_files::map_t       f_zone_files = zone_files::map_t();
+    conf_map_t              f_zone_conf = {}; // indexed by group name
     bool                    f_bind_restart_required = false;
     bool                    f_dry_run = false;
     bool                    f_verbose = false;
