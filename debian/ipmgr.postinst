@@ -17,8 +17,8 @@ then
     fi
     sed \
         -i.bak \
-        -e '/^\(include "\/etc\/bind\/ipmgr-options.conf"\)/ {s//\1/;:a;n;ba;q}' \
-        -e '$ainclude "/etc/bind/ipmgr-options.conf"' \
+        -e '/^\(include "\/etc\/bind\/ipmgr-options.conf";\)/ {s//\1/;:a;n;ba;q}' \
+        -e '$ainclude "/etc/bind/ipmgr-options.conf";' \
             /etc/bind/named.conf.local
 
     # Create the folder for dynamic zones
