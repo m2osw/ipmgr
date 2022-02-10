@@ -825,21 +825,22 @@ bool ipmgr::zone_files::retrieve_nameservers()
 
     std::string const default_nameservers("ns1." + f_domain + " ns2." + f_domain);
     std::string const nameserver_list(get_zone_param("nameservers", "default_nameservers", default_nameservers));
+    advgetopt::string_list_t list;
     advgetopt::split_string(
           nameserver_list
-        , f_nameservers
+        , list
         , {" ", ",", ":", ";"});
-    if(f_nameservers.size() < 2)
+    if(list.size() < 2)
     {
         SNAP_LOG_ERROR
             << "You must defined at least two nameservers (found "
-            << f_nameservers.size()
+            << list.size()
             << " instead)."
             << SNAP_LOG_SEND;
         return false;
     }
 
-    for(auto const & ns : f_nameservers)
+    for(auto const & ns : list)
     {
         if(!validate_domain(ns))
         {
@@ -850,6 +851,18 @@ bool ipmgr::zone_files::retrieve_nameservers()
                 << SNAP_LOG_SEND;
             return false;
         }
+        if(f_nameservers.find(ns) != f_nameservers.end())
+        {
+            SNAP_LOG_ERROR
+                << "Nameserver \""
+                << ns
+                << "\" found twice in zone \""
+                << f_domain
+                << "\"."
+                << SNAP_LOG_SEND;
+            return false;
+        }
+        f_nameservers[ns] = std::string();
     }
 
     return true;
@@ -1166,7 +1179,7 @@ std::string ipmgr::zone_files::generate_zone_file()
     zone_data
         << f_domain
         << " IN SOA "
-        << f_nameservers[0]
+        << f_nameservers.begin()->first
         << ". "
         << f_hostmaster
         << ". ("
@@ -1185,7 +1198,7 @@ std::string ipmgr::zone_files::generate_zone_file()
     //
     for(auto const & ns : f_nameservers)
     {
-        zone_data << "\tNS " << ns << ".\n";
+        zone_data << "\tNS " << ns.first << ".\n";
     }
 
     // MX entries if this domain supports mail
@@ -1250,6 +1263,7 @@ std::string ipmgr::zone_files::generate_zone_file()
     // std::stringstream to generate a string that we save in a set and
     // afterward we write the strings in the set to the zone_data
     //
+    std::set<std::string> unique_nameserver_ips;
     std::set<std::string> sorted_domains;
     std::set<std::string> sorted_subdomains;
     for(auto const & s : f_sections)
@@ -1426,14 +1440,6 @@ std::string ipmgr::zone_files::generate_zone_file()
                     {
                         std::stringstream ss;
 
-                        ss << d << '\t';
-
-                        if(subdomain_ttl != 0
-                        && subdomain_ttl != f_ttl)
-                        {
-                            ss << subdomain_ttl << ' ';
-                        }
-
                         addr::addr_parser parser;
                         parser.set_allow(addr::addr_parser::flag_t::ADDRESS, true);
                         parser.set_allow(addr::addr_parser::flag_t::REQUIRED_ADDRESS, true);
@@ -1441,6 +1447,53 @@ std::string ipmgr::zone_files::generate_zone_file()
                         parser.set_allow(addr::addr_parser::flag_t::PORT, false);
                         addr::addr_range::vector_t r(parser.parse(ip));
                         addr::addr a(r[0].get_from());
+                        std::string const address(a.to_ipv4or6_string(addr::addr::string_ip_t::STRING_IP_ONLY));
+
+                        auto it(f_nameservers.find(d + '.' + f_domain));
+                        if(it != f_nameservers.end())
+                        {
+                            if(!it->second.empty())
+                            {
+                                SNAP_LOG_ERROR
+                                    << "a subdomain nameserver can only be given one IP address, found "
+                                    << it->second
+                                    << " and "
+                                    << address
+                                    << " for "
+                                    << it->first
+                                    << "."
+                                    << SNAP_LOG_SEND;
+                                return std::string();
+                            }
+                            else
+                            {
+                                it->second = address;
+                                auto unique(unique_nameserver_ips.find(address));
+                                if(unique != unique_nameserver_ips.end())
+                                {
+                                    SNAP_LOG_ERROR
+                                        << "each nameserver subdomain must have a unique IP address, found "
+                                        << address
+                                        << " twice, check subdomain \""
+                                        << it->first
+                                        << "\"."
+                                        << SNAP_LOG_SEND;
+                                    return std::string();
+                                }
+                                else
+                                {
+                                    unique_nameserver_ips.insert(address);
+                                }
+                            }
+                        }
+
+                        ss << d << '\t';
+
+                        if(subdomain_ttl != 0
+                        && subdomain_ttl != f_ttl)
+                        {
+                            ss << subdomain_ttl << ' ';
+                        }
 
                         if(a.is_ipv4())
                         {
@@ -1450,7 +1503,7 @@ std::string ipmgr::zone_files::generate_zone_file()
                         {
                             ss << "AAAA";
                         }
-                        ss << "\t" << a.to_ipv4or6_string(addr::addr::string_ip_t::STRING_IP_ONLY);
+                        ss << "\t" << address;
 
                         sorted_subdomains.insert(ss.str());
                     }
@@ -1458,6 +1511,17 @@ std::string ipmgr::zone_files::generate_zone_file()
 
                 if(!cname.empty())
                 {
+                    auto it(f_nameservers.find(d + '.' + f_domain));
+                    if(it != f_nameservers.end())
+                    {
+                        SNAP_LOG_ERROR
+                            << "nameserver \""
+                            << d
+                            << "\" can't be used with CNAME."
+                            << SNAP_LOG_SEND;
+                        return std::string();
+                    }
+
                     std::stringstream ss;
 
                     ss << d << '\t';
@@ -1869,7 +1933,7 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
             << zone->domain()
             << ".zone"
             << "\";\n"
-        << "  allow-transfer { trusted-servers; }\n"
+        << "  allow-transfer { trusted-servers; };\n"
         << (zone->dynamic() == zone_files::dynamic_t::DYNAMIC_LETSENCRYPT
                 ? "  check-names warn;\n"
                   "  update-policy {\n"

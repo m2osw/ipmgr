@@ -47,6 +47,7 @@ public:
         typedef std::shared_ptr<zone_files>                     pointer_t;
         typedef std::map<std::string, pointer_t>                map_t;
         typedef std::vector<advgetopt::conf_file::pointer_t>    config_array_t;
+        typedef std::map<std::string, std::string>              nameservers_t;
 
         enum class dynamic_t
         {
@@ -121,7 +122,7 @@ public:
         std::string                         f_domain = std::string();
         std::int32_t                        f_ttl = 0;
         advgetopt::string_list_t            f_ips = advgetopt::string_list_t();
-        advgetopt::string_list_t            f_nameservers = advgetopt::string_list_t();
+        nameservers_t                       f_nameservers = nameservers_t();
         std::string                         f_hostmaster = std::string();
         std::uint32_t                       f_serial = 0;
         std::int64_t                        f_refresh = 0;
