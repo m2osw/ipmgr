@@ -25,13 +25,18 @@ then
     # case ipmgr doesn't work, having this file will help restarting bind
     #
     echo "// AUTO-GENERATED, DO NOT EDIT" > /etc/bind/ipmgr-options.conf
-    echo "// see ipmgr(1) for details" >> /etc/bind/ipmgr-options.conf
+    echo "// see \`man ipmgr\` for details" >> /etc/bind/ipmgr-options.conf
 
     # Create the folder for dynamic zones
     #
     mkdir -p /var/lib/ipmgr/zones
     cp /usr/share/ipmgr/zones/README-static-zones.md \
         /var/lib/ipmgr/zones/README-dynamic-zones.md
+
+    # Add default settings to the DNS service
+    # (TODO: look into how to do that so it's useful to everyone)
+    #
+    dns-setup
 
     # In most cases, it's not useful to run ipmgr on the first install,
     # but on subsequent installations, it may be necessary to update the
@@ -41,9 +46,12 @@ then
         echo "warning: ipmgr failed, please make sure bind is up and running."
     fi
 
+    echo "info: restart named if running."
     if systemctl is-active named
     then
         systemctl restart named
+    else
+        echo "warning: named service is not active, leaving it stopped."
     fi
 fi
 

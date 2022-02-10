@@ -45,4 +45,16 @@ install(
 )
 
 
+
+project(dns-setup)
+
+install(
+    PROGRAMS
+        ${PROJECT_NAME}
+
+    DESTINATION
+        bin
+)
+
+
 # vim: ts=4 sw=4 et nocindent
