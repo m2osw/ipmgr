@@ -132,10 +132,9 @@ advgetopt::option const g_ipmgr_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_REQUIRED
-                    , advgetopt::GETOPT_FLAG_MULTIPLE
                     , advgetopt::GETOPT_FLAG_PROCESS_VARIABLES>())
         , advgetopt::DefaultValue("2w")
-        , advgetopt::Help("Define the amount of time to remember a value for even if stale.")
+        , advgetopt::Help("Define the amount of time to remember a value for, even if stale.")
     ),
     advgetopt::define_option(
           advgetopt::Name("default-group")
@@ -168,7 +167,6 @@ advgetopt::option const g_ipmgr_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_REQUIRED
-                    , advgetopt::GETOPT_FLAG_MULTIPLE
                     , advgetopt::GETOPT_FLAG_PROCESS_VARIABLES>())
         , advgetopt::DefaultValue("5m")
         , advgetopt::Help("Define the amount of time to between retries to refresh the cache.")
@@ -178,7 +176,6 @@ advgetopt::option const g_ipmgr_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_REQUIRED
-                    , advgetopt::GETOPT_FLAG_MULTIPLE
                     , advgetopt::GETOPT_FLAG_PROCESS_VARIABLES>())
         , advgetopt::DefaultValue("3h")
         , advgetopt::Help("Define the refresh rate of your secondary servers.")
@@ -188,7 +185,6 @@ advgetopt::option const g_ipmgr_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_REQUIRED
-                    , advgetopt::GETOPT_FLAG_MULTIPLE
                     , advgetopt::GETOPT_FLAG_PROCESS_VARIABLES>())
         , advgetopt::DefaultValue("3m")
         , advgetopt::Help("Define the retry rate in case the main server does not reply to your secondary servers.")
@@ -198,7 +194,6 @@ advgetopt::option const g_ipmgr_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_REQUIRED
-                    , advgetopt::GETOPT_FLAG_MULTIPLE
                     , advgetopt::GETOPT_FLAG_PROCESS_VARIABLES>())
         , advgetopt::DefaultValue("1d")
         , advgetopt::Help("Define the default time to live for a domain name request.")
@@ -217,7 +212,7 @@ advgetopt::option const g_ipmgr_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS
                     , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("1270.01")
+        , advgetopt::DefaultValue("127.0.0.1")
         , advgetopt::Help("Define the IP address to connect to the DNS service (BIND9).")
     ),
     advgetopt::define_option(
