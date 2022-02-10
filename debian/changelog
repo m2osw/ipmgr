@@ -1,3 +1,13 @@
+ipmgr (1.0.18.0~bionic) bionic; urgency=high
+
+  * Fixed several parameters that were to accept multiple instances when they
+    are expected to use just one.
+  * Fixed the default IP address for the DNS IP. Periods were missing.
+  * Added a note about a couple of command line options that can be used with
+    multiple parameters, but that are not properly handled if used that way.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Wed, 09 Feb 2022 22:49:17 -0800
+
 ipmgr (1.0.17.0~bionic) bionic; urgency=high
 
   * Really install the dns-setup so the postinst works.
