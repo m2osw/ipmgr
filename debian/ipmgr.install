@@ -1,5 +1,6 @@
 usr/sbin/ipmgr
 usr/bin/dns-options
+usr/bin/dns-setup
 usr/share/man
 conf/ipmgr.conf                                 etc/ipmgr/
 conf/README.md                                  etc/ipmgr/ipmgr.d/
