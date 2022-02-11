@@ -78,6 +78,7 @@
 
 // snapdev lib
 //
+#include    <snapdev/chownnm.h>
 #include    <snapdev/pathinfo.h>
 #include    <snapdev/file_contents.h>
 #include    <snapdev/trim_string.h>
@@ -221,6 +222,12 @@ advgetopt::option const g_ipmgr_options[] =
         , advgetopt::Flags(advgetopt::standalone_command_flags<
                       advgetopt::GETOPT_FLAG_GROUP_OPTIONS>())
         , advgetopt::Help("Run ipmgr to generate all the commands, but do not actually run those commands. This option implies `--verbose`.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("force")
+        , advgetopt::Flags(advgetopt::standalone_all_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS>())
+        , advgetopt::Help("Force updates even if the files did not change.")
     ),
     advgetopt::define_option(
           advgetopt::Name("quiet")
@@ -1157,12 +1164,6 @@ std::string ipmgr::zone_files::generate_zone_file()
 
     // warning
     zone_data << "; WARNING -- auto-generated file; see `man ipmgr` for details.\n";
-    if(f_dynamic != dynamic_t::DYNAMIC_STATIC)
-    {
-        zone_data << ";\n";
-        zone_data << ";            this file represents our original but it is not used\n";
-        zone_data << ";            by bind9 since we instead dynamically update the zone\n";
-    }
 
     // ORIGIN
     zone_data << "$ORIGIN .\n";
@@ -1647,6 +1648,7 @@ ipmgr::ipmgr(int argc, char * argv[])
 
     f_dry_run = f_opt->is_defined("dry-run");
     f_verbose = f_dry_run || f_opt->is_defined("verbose");
+    f_force = f_opt->is_defined("force");
     f_config_warnings = f_opt->is_defined("config-warnings");
 }
 
@@ -1948,16 +1950,19 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
     std::string const zone_filename("/var/lib/ipmgr/generated/" + zone->group() + "/" + zone->domain() + ".zone");
 
     snapdev::file_contents file(zone_filename, true);
-    if(file.exists()
-    && file.read_all())
+    if(!f_force)
     {
-        // got existing file contents, did it change?
-        //
-        if(file.contents() == z)
+        if(file.exists()
+        && file.read_all())
         {
-            // no changes, we're done here
+            // got existing file contents, did it change?
             //
-            return 0;
+            if(file.contents() == z)
+            {
+                // no changes, we're done here
+                //
+                return 0;
+            }
         }
     }
 
@@ -2004,7 +2009,7 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
         if(!bind.write_all())
         {
             SNAP_LOG_ERROR
-                << "could not write to file \""
+                << "could not write to static file \""
                 << bind_filename
                 << "\": "
                 << bind.last_error()
@@ -2015,9 +2020,76 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
         return 0;
     }
 
-    // this is a dynamic zone, so we have to actually manually update
-    // it instead of just saving a static file and restarting bind9
+    // this is a dynamic zone
     //
+    // ideally, we would want to dynamically update this zone but...
+    //
+    // (1) zones made dynamic to allow letsencrypt can get a TXT setup
+    //     but nothing else, so it's not useful
+    //
+    // (2) zones made dynamic to allow subdomain updates may have other
+    //     changes such as their SOA and at this point I don't have the
+    //     time to implement such here! (rndc can be used to update the
+    //     SOA, but I'm not too sure how you'd setup the NS and MX
+    //     fields, etc.)
+    //
+    // 1. new or letsencrypt dynamism only
+    //
+    // if it is the first time we set this one up, we need to create the
+    // file under /var/lib/bind/<domain>.zone
+    //
+    // 2. existing
+    //
+    // it already exists, we want to just make the changes with nsupdate
+    //
+    std::string const dynamic_filename("/var/lib/bind/" + zone->domain() + ".zone");
+
+    // as mentioned above, always refresh the whole file...
+    // and for that to work safely, we need to turn off the
+    // server first, otherwise it could try to update the file
+    // under our feet
+    //
+    int const r(bind9_is_active());
+    if(r != 0)
+    {
+        return r;
+    }
+    if(f_bind9_is_active == active_t::ACTIVE_YES)
+    {
+        stop_bind9();
+    }
+
+    //if(access(dynamic_filename, F_OK) != 0
+    //|| zone->dynamic() != dynamic_t::DYNAMIC_LOCAL)
+    {
+        // case 1. file is new or we're not in LOCAL dynamism
+        //
+        snapdev::file_contents dynamic_zone(dynamic_filename, true);
+        dynamic_zone.contents(z);
+        if(!dynamic_zone.write_all())
+        {
+            SNAP_LOG_ERROR
+                << "could not write to dynamic file \""
+                << dynamic_filename
+                << "\": "
+                << dynamic_zone.last_error()
+                << SNAP_LOG_SEND;
+            return 1;
+        }
+        if(snapdev::chownnm(dynamic_filename, "bind", "bind") != 0)
+        {
+            SNAP_LOG_ERROR
+                << "could not set dynamic file \""
+                << dynamic_filename
+                << "\" owner and/or group to bind:bind."
+                << SNAP_LOG_SEND;
+            return 1;
+        }
+
+        return 0;
+    }
+
+// at the moment this case is not handled (see comments above)
 
     return 0;
 }
@@ -2101,26 +2173,14 @@ int ipmgr::process_zones()
 }
 
 
-/** \brief Restart bind9.
- *
- * This function checks whether the bind9 service needs to be restarted.
- * If so, then it checks whether it is currently active. If a restart is
- * not necessary or the service is not currently active, nothing happens.
- * Otherwise, it stops the process, removes all the .jnl files, and
- * finally restarts the process.
- *
- * \return 0 or 1 as the main() function expects
- */
-int ipmgr::restart_bind9()
+int ipmgr::bind9_is_active()
 {
-    // restart necessary?
+    // we must check only once because we may get called more than once
+    // and the stop_bind9() may get called in between...
     //
-    if(!f_bind_restart_required)
+    if(f_bind9_is_active != active_t::ACTIVE_NOT_TESTED)
     {
-        if(access(g_bind9_need_restart, F_OK) != 0)
-        {
-            return 0;
-        }
+        return 0;
     }
 
     // we do not want to force a stop & start if the process is not currently
@@ -2168,24 +2228,41 @@ int ipmgr::restart_bind9()
     }
 
     std::string const active(snapdev::trim_string(output->get_output(true)));
-    if(active != "active")
+    f_bind9_is_active = active == "active"
+                            ? active_t::ACTIVE_YES
+                            : active_t::ACTIVE_NO;
+
+    // TODO: make this flag a file so we know whether we need to do a restart
+    //       even if ipmgr fails
+
+    return 0;
+}
+
+
+int ipmgr::stop_bind9()
+{
+    // make sure we try to stop only once (it's rather slow to repeat this
+    // call otherwise even if it's safe)
+    //
+    if(f_stopped_bind9)
     {
         return 0;
     }
+    f_stopped_bind9 = true;
 
     // stop the DNS server
     //
-    char const * stop_bind9("systemctl stop bind9");
+    char const * cmd("systemctl stop bind9");
     if(f_verbose)
     {
         std::cout
             << "info: "
-            << stop_bind9
+            << cmd
             << std::endl;
     }
     if(!f_dry_run)
     {
-        int const r(system(stop_bind9));
+        int const r(system(cmd));
         if(r != 0)
         {
             SNAP_LOG_FATAL
@@ -2195,6 +2272,82 @@ int ipmgr::restart_bind9()
                 << SNAP_LOG_SEND;
             return r;
         }
+    }
+
+    return 0;
+}
+
+
+int ipmgr::start_bind9()
+{
+    // start the DNS server
+    //
+    char const * cmd("systemctl start bind9");
+    if(f_verbose)
+    {
+        std::cout
+            << "info: "
+            << cmd
+            << std::endl;
+    }
+    if(!f_dry_run)
+    {
+        int const r(system(cmd));
+        if(r != 0)
+        {
+            SNAP_LOG_FATAL
+                << "could not start the bind9 process (systemctl exit value: "
+                << r
+                << ")."
+                << SNAP_LOG_SEND;
+            return r;
+        }
+    }
+
+    return 0;
+}
+
+
+/** \brief Restart bind9.
+ *
+ * This function checks whether the bind9 service needs to be restarted.
+ * If so, then it checks whether it is currently active. If a restart is
+ * not necessary or the service is not currently active, nothing happens.
+ * Otherwise, it stops the process, removes all the .jnl files, and
+ * finally restarts the process.
+ *
+ * \return 0 or 1 as the main() function expects
+ */
+int ipmgr::restart_bind9()
+{
+    int r(0);
+
+    // restart necessary?
+    //
+    if(!f_bind_restart_required)
+    {
+        if(access(g_bind9_need_restart, F_OK) != 0)
+        {
+            return 0;
+        }
+    }
+
+    r = bind9_is_active();
+    if(r != 0)
+    {
+        return r;
+    }
+    if(f_bind9_is_active == active_t::ACTIVE_NO)
+    {
+        // it was not active when we started ipmgr, so do nothing more here
+        //
+        return 0;
+    }
+
+    r = stop_bind9();
+    if(r != 0)
+    {
+        return r;
     }
 
     // clear the journals
@@ -2209,7 +2362,7 @@ int ipmgr::restart_bind9()
     }
     if(!f_dry_run)
     {
-        int const r(system(clear_journals));
+        r = system(clear_journals);
         if(r != 0)
         {
             SNAP_LOG_WARNING
@@ -2218,28 +2371,10 @@ int ipmgr::restart_bind9()
         }
     }
 
-    // start the DNS server
-    //
-    char const * start_bind9("systemctl start bind9");
-    if(f_verbose)
+    r = start_bind9();
+    if(r != 0)
     {
-        std::cout
-            << "info: "
-            << start_bind9
-            << std::endl;
-    }
-    if(!f_dry_run)
-    {
-        int const r(system(start_bind9));
-        if(r != 0)
-        {
-            SNAP_LOG_FATAL
-                << "could not start the bind9 process (systemctl exit value: "
-                << r
-                << ")."
-                << SNAP_LOG_SEND;
-            return r;
-        }
+        return r;
     }
 
     // remove the flag telling us that the restart we requested
@@ -2255,7 +2390,7 @@ int ipmgr::restart_bind9()
     }
     if(!f_dry_run)
     {
-        int const r(system(done_restart.c_str()));
+        r = system(done_restart.c_str());
         if(r != 0)
         {
             SNAP_LOG_WARNING

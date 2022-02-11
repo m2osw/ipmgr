@@ -3,7 +3,7 @@
 # Setup a few parameters to make BIND9 settings a little safer (by ofuscation
 # which is useless but required by PCI)
 
-# Fixed a few parameters which are considered unsafe by PCI
+# Fix a few parameters which are considered unsafe by PCI
 # (these are really just ofuscation of the DNS)
 #
 NAMED_CONF=/etc/bind/named.conf.options
@@ -39,6 +39,17 @@ ${DNS_OPTIONS} -e 'acl[bogusnets]._ = 224.0.0.0/3;'    ${NAMED_CONF}
 #${DNS_OPTIONS} -e 'acl[bogusnets]._ = 192.168.0.0/16;' ${NAMED_CONF}
 
 ${DNS_OPTIONS} -e 'options.blackhole._ = bogusnets;' ${NAMED_CONF}
+
+# For dynamic DNS features to work
+#
+${DNS_OPTIONS} -e 'options.allow-recursion._ = trusted-servers;' ${NAMED_CONF}
+${DNS_OPTIONS} -e 'options.allow-notify._ = trusted-servers;' ${NAMED_CONF}
+${DNS_OPTIONS} -e 'options.allow-transfer._ = trusted-servers;' ${NAMED_CONF}
+
+# NEVER ADD allow-update HERE OR IT MAKES THE WHOLE SERVER A SLAVE
+#${DNS_OPTIONS} -e 'options.allow-update._ = trusted-servers;' ${NAMED_CONF}
+# No need for the "allow-new-zones", we create those
+#${DNS_OPTIONS} -e 'options.allow-new-zones._ = true;' ${NAMED_CONF}
 
 # Define a security log file
 # (See SNAP-483)

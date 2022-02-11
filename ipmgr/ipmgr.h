@@ -144,6 +144,13 @@ public:
 private:
     typedef std::map<std::string, std::stringstream>    conf_map_t;
 
+    enum active_t
+    {
+        ACTIVE_NOT_TESTED,
+        ACTIVE_NO,
+        ACTIVE_YES,
+    };
+
     bool                    dry_run() const;
     bool                    verbose() const;
     int                     make_root();
@@ -152,6 +159,9 @@ private:
     int                     generate_zone(zone_files::pointer_t & zone);
     int                     save_conf_files();
     int                     process_zones();
+    int                     bind9_is_active();
+    int                     stop_bind9();
+    int                     start_bind9();
     int                     restart_bind9();
 
     advgetopt::getopt::pointer_t
@@ -162,7 +172,10 @@ private:
     bool                    f_bind_restart_required = false;
     bool                    f_dry_run = false;
     bool                    f_verbose = false;
+    bool                    f_force = false;
     bool                    f_config_warnings = false;
+    bool                    f_stopped_bind9 = false;
+    active_t                f_bind9_is_active = active_t::ACTIVE_NOT_TESTED;
 };
 
 
