@@ -41,17 +41,11 @@ then
     # In most cases, it's not useful to run ipmgr on the first install,
     # but on subsequent installations, it may be necessary to update the
     # files to the latest version
-    if ! ipmgr
+    #
+    if ! ipmgr --force
     then
-        echo "warning: ipmgr failed, please make sure bind is up and running."
-    fi
-
-    echo "info: restart named if running."
-    if systemctl is-active named
-    then
-        systemctl restart named
-    else
-        echo "warning: named service is not active, leaving it stopped."
+        echo "warning: ipmgr failed, please make sure all the zone definitions are valid"
+        echo "         and that bind is up and running."
     fi
 fi
 
