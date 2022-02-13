@@ -322,7 +322,7 @@ advgetopt::options_environment const g_iplock_options_environment =
     .f_copyright = "Copyright (c) 2022-" BOOST_PP_STRINGIZE(UTC_BUILD_YEAR) " by Made to Order Software Corporation",
     .f_build_date = UTC_BUILD_DATE,
     .f_build_time = UTC_BUILD_TIME,
-    .f_groups = g_group_descriptions
+    .f_groups = g_group_descriptions,
 };
 #pragma GCC diagnostic pop
 
@@ -415,10 +415,10 @@ bool validate_ips(advgetopt::string_list_t & ip_list)
         }
 
         addr::addr_parser parser;
-        parser.set_allow(addr::addr_parser::flag_t::ADDRESS, true);
-        parser.set_allow(addr::addr_parser::flag_t::REQUIRED_ADDRESS, true);
-        parser.set_allow(addr::addr_parser::flag_t::ADDRESS_LOOKUP, false);
-        parser.set_allow(addr::addr_parser::flag_t::PORT, false);
+        parser.set_allow(addr::allow_t::ALLOW_ADDRESS, true);
+        parser.set_allow(addr::allow_t::ALLOW_REQUIRED_ADDRESS, true);
+        parser.set_allow(addr::allow_t::ALLOW_ADDRESS_LOOKUP, false);
+        parser.set_allow(addr::allow_t::ALLOW_PORT, false);
         snapdev::NOT_USED(parser.parse(ip));
         if(parser.has_errors())
         {
@@ -1237,10 +1237,10 @@ std::string ipmgr::zone_files::generate_zone_file()
     for(auto const & ip : f_ips)
     {
         addr::addr_parser parser;
-        parser.set_allow(addr::addr_parser::flag_t::ADDRESS, true);
-        parser.set_allow(addr::addr_parser::flag_t::REQUIRED_ADDRESS, true);
-        parser.set_allow(addr::addr_parser::flag_t::ADDRESS_LOOKUP, false);
-        parser.set_allow(addr::addr_parser::flag_t::PORT, false);
+        parser.set_allow(addr::allow_t::ALLOW_ADDRESS, true);
+        parser.set_allow(addr::allow_t::ALLOW_REQUIRED_ADDRESS, true);
+        parser.set_allow(addr::allow_t::ALLOW_ADDRESS_LOOKUP, false);
+        parser.set_allow(addr::allow_t::ALLOW_PORT, false);
         addr::addr_range::vector_t r(parser.parse(ip));
         addr::addr a(r[0].get_from());
 
@@ -1437,10 +1437,10 @@ std::string ipmgr::zone_files::generate_zone_file()
                         std::stringstream ss;
 
                         addr::addr_parser parser;
-                        parser.set_allow(addr::addr_parser::flag_t::ADDRESS, true);
-                        parser.set_allow(addr::addr_parser::flag_t::REQUIRED_ADDRESS, true);
-                        parser.set_allow(addr::addr_parser::flag_t::ADDRESS_LOOKUP, false);
-                        parser.set_allow(addr::addr_parser::flag_t::PORT, false);
+                        parser.set_allow(addr::allow_t::ALLOW_ADDRESS, true);
+                        parser.set_allow(addr::allow_t::ALLOW_REQUIRED_ADDRESS, true);
+                        parser.set_allow(addr::allow_t::ALLOW_ADDRESS_LOOKUP, false);
+                        parser.set_allow(addr::allow_t::ALLOW_PORT, false);
                         addr::addr_range::vector_t r(parser.parse(ip));
                         addr::addr a(r[0].get_from());
                         std::string const address(a.to_ipv4or6_string(addr::addr::string_ip_t::STRING_IP_ONLY));
