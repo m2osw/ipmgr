@@ -1631,7 +1631,7 @@ std::string ipmgr::zone_files::generate_zone_file()
                 << named_checkzone.get_command_line()
                 << "\"."
                 << SNAP_LOG_SEND;
-            return 1;
+            return std::string();
         }
 
         int const r(named_checkzone.wait());
@@ -1648,7 +1648,7 @@ std::string ipmgr::zone_files::generate_zone_file()
                 << results
                 << "\"."
                 << SNAP_LOG_SEND;
-            return 1;
+            return std::string();
         }
     }
 
