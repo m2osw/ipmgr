@@ -1607,17 +1607,48 @@ std::string ipmgr::zone_files::generate_zone_file()
                 << verify_zone
                 << std::endl;
         }
-        int const r(system(verify_zone.c_str()));
-        if(r != 0)
+
+        cppprocess::process named_checkzone("named-verification");
+        named_checkzone.set_command("named-checkzone");
+        named_checkzone.add_argument(f_domain);
+        named_checkzone.add_argument(zone_to_verify);
+
+        cppprocess::io_capture_pipe::pointer_t output(std::make_shared<cppprocess::io_capture_pipe>());
+        named_checkzone.set_output_io(output);
+
+        if(f_verbose)
+        {
+            std::cout
+                << "info: "
+                << named_checkzone.get_command_line()
+                << std::endl;
+        }
+
+        if(named_checkzone.start() != 0)
         {
             SNAP_LOG_FATAL
-                << "the generated zone did not validate with named-checkzone; exit code: "
-                << r
-                << " (command: \""
-                << verify_zone
-                << "\")."
+                << "could not start \""
+                << named_checkzone.get_command_line()
+                << "\"."
                 << SNAP_LOG_SEND;
-            return std::string();
+            return 1;
+        }
+
+        int const r(named_checkzone.wait());
+        if(r != 0)
+        {
+            std::string const results(snapdev::trim_string(output->get_output(true)));
+
+            SNAP_LOG_FATAL
+                << "command \""
+                << named_checkzone.get_command_line()
+                << "\" return an error (exit code "
+                << r
+                << "): \""
+                << results
+                << "\"."
+                << SNAP_LOG_SEND;
+            return 1;
         }
     }
 
