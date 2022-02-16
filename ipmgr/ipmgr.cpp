@@ -1616,6 +1616,9 @@ std::string ipmgr::zone_files::generate_zone_file()
         cppprocess::io_capture_pipe::pointer_t output(std::make_shared<cppprocess::io_capture_pipe>());
         named_checkzone.set_output_io(output);
 
+        cppprocess::io_capture_pipe::pointer_t error(std::make_shared<cppprocess::io_capture_pipe>());
+        named_checkzone.set_error_io(error);
+
         if(f_verbose)
         {
             std::cout
@@ -1638,14 +1641,17 @@ std::string ipmgr::zone_files::generate_zone_file()
         if(r != 0)
         {
             std::string const results(snapdev::trim_string(output->get_output(true)));
+            std::string const errmsg(snapdev::trim_string(error->get_output(true)));
 
             SNAP_LOG_FATAL
                 << "command \""
                 << named_checkzone.get_command_line()
                 << "\" return an error (exit code "
                 << r
-                << "): \""
+                << "): stdout \""
                 << results
+                << "\" -- stderr \""
+                << errmsg
                 << "\"."
                 << SNAP_LOG_SEND;
             return std::string();

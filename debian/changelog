@@ -1,3 +1,9 @@
+ipmgr (1.0.23.0~bionic) bionic; urgency=high
+
+  * Actually capture stdout and stderr from the named verification.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Tue, 15 Feb 2022 21:22:47 -0800
+
 ipmgr (1.0.22.0~bionic) bionic; urgency=high
 
   * Fixed return value in new named-checkzone handling.
