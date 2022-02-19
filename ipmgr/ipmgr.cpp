@@ -1904,6 +1904,8 @@ int ipmgr::prepare_includes()
  */
 int ipmgr::generate_zone(zone_files::pointer_t & zone)
 {
+    int r(0);
+
     if(!zone->retrieve_fields())
     {
         return 1;
@@ -2035,11 +2037,30 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
         return 1;
     }
 
+    std::string const bind_filename("/etc/bind/zones/" + zone->group() + "/" + zone->domain() + ".zone");
+    std::string const dynamic_filename("/var/lib/bind/" + zone->domain() + ".zone");
+
     if(zone->dynamic() == zone_files::dynamic_t::DYNAMIC_STATIC)
     {
+        // if static, make sure to remove the dynamic zone file
+        //
+        r = unlink(dynamic_filename.c_str());
+        if(r != 0
+        && errno != ENOENT)
+        {
+            int const e(errno);
+            SNAP_LOG_WARNING
+                << "could not delete file \""
+                << dynamic_filename
+                << "\": "
+                << e
+                << ", "
+                << strerror(e)
+                << SNAP_LOG_SEND;
+        }
+
         // static zones also get saved under /etc/bind/zones/<group>/...
         //
-        std::string const bind_filename("/etc/bind/zones/" + zone->group() + "/" + zone->domain() + ".zone");
 
         snapdev::file_contents bind(bind_filename, true);
         bind.contents(z);
@@ -2055,6 +2076,23 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
         }
 
         return 0;
+    }
+
+    // if dynamic, make sure to remove the static zone file
+    //
+    r = unlink(bind_filename.c_str());
+    if(r != 0
+    && errno != ENOENT)
+    {
+        int const e(errno);
+        SNAP_LOG_WARNING
+            << "could not delete file \""
+            << bind_filename
+            << "\": "
+            << e
+            << ", "
+            << strerror(e)
+            << SNAP_LOG_SEND;
     }
 
     // this is a dynamic zone
@@ -2079,14 +2117,13 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
     //
     // it already exists, we want to just make the changes with nsupdate
     //
-    std::string const dynamic_filename("/var/lib/bind/" + zone->domain() + ".zone");
 
     // as mentioned above, always refresh the whole file...
     // and for that to work safely, we need to turn off the
     // server first, otherwise it could try to update the file
     // under our feet
     //
-    int const r(bind9_is_active());
+    r = bind9_is_active();
     if(r != 0)
     {
         return r;

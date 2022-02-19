@@ -34,13 +34,5 @@ DECLARE_LOGIC_ERROR(ipmgr_logic_error);
 
 DECLARE_MAIN_EXCEPTION(ipmgr_error);
 
-//DECLARE_EXCEPTION(ipmgr_error, conflict_error);
-//DECLARE_EXCEPTION(ipmgr_error, duplicate_error);
-//DECLARE_EXCEPTION(ipmgr_error, invalid_variable);
-//DECLARE_EXCEPTION(ipmgr_error, invalid_parameter);
-//DECLARE_EXCEPTION(ipmgr_error, invalid_severity);
-//DECLARE_EXCEPTION(ipmgr_error, not_a_message);
-
-
 
 // vim: ts=4 sw=4 et
