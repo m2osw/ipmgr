@@ -54,6 +54,7 @@ public:
             DYNAMIC_STATIC,     // not dynamic...
             DYNAMIC_LOCAL,
             DYNAMIC_LETSENCRYPT,
+            DYNAMIC_BOTH,
         };
 
                                 zone_files(

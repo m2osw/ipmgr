@@ -53,7 +53,7 @@ files.
 
 .TP
 \fB\-C\fR, \fB\-\-copyright\fR
-Print put the copyright notice of the `ipmgr' tool.
+Print out the copyright notice of the `ipmgr' tool.
 
 .TP
 \fB\-\-debug\fR
@@ -246,7 +246,7 @@ Show the various steps table by the `ipmgr' before running them.
 print version number, then exit
 
 .TP
-\fB\-\-zone-directories\fR [\fIDIRECTORY\fR]...
+\fB\-\-zone\-directories\fR [\fIDIRECTORY\fR]...
 One of more directories to read zone files from. The directories are searched
 for .conf files which will be transformed to BIND9 compatible .zone files.
 
@@ -284,4 +284,6 @@ This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
 .SH "SEE ALSO"
 .BR ipmgr (5),
+.BR dns-options (1),
+.BR named.conf (5)
 .BR named (8)

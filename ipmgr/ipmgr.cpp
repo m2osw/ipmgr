@@ -1105,6 +1105,10 @@ bool ipmgr::zone_files::retrieve_dynamic()
     {
         f_dynamic = dynamic_t::DYNAMIC_LOCAL;
     }
+    else if(dynamic == "both")
+    {
+        f_dynamic = dynamic_t::DYNAMIC_BOTH;
+    }
     else
     {
         SNAP_LOG_ERROR
@@ -1970,6 +1974,10 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
             << ".zone"
             << "\";\n"
         << "  allow-transfer { trusted-servers; };\n"
+
+        // at this time, I only handle our very specific update-policy needs...
+        // this needs a lot of help
+        //
         << (zone->dynamic() == zone_files::dynamic_t::DYNAMIC_LETSENCRYPT
                 ? "  check-names warn;\n"
                   "  update-policy {\n"
@@ -1978,8 +1986,17 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
                 : std::string())
         << (zone->dynamic() == zone_files::dynamic_t::DYNAMIC_LOCAL
                 ? "  update-policy local;\n"
-                  "  max-journal-size 2M;\n"
                 : std::string())
+        << (zone->dynamic() == zone_files::dynamic_t::DYNAMIC_BOTH
+                ? "  check-names warn;\n"
+                  "  update-policy {\n"
+                  "    grant local-ddns zonesub any;\n"
+                  "    grant letsencrypt_wildcard. name _acme-challenge." + zone->domain() + ". txt;\n"
+                  "  };\n"
+                : std::string())
+        << (zone->dynamic() != zone_files::dynamic_t::DYNAMIC_STATIC
+                ? "  max-journal-size 2M;\n"
+                : "")
         << "};\n"
         << "\n";
 

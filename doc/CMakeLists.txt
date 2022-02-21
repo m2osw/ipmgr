@@ -42,6 +42,7 @@ install(
 install(
     FILES
         ipmgr.1
+        dns-options.1
 
     DESTINATION
         share/man/man1

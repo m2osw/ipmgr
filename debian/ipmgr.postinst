@@ -10,7 +10,11 @@ then
     # Include our setup file which includes all the zones we generate
     #
     mkdir -p /etc/bind/zones/
-    echo "# DO NOT EDIT, USE ipmgr ... TO REGENERATE THIS FILE" > /etc/bind/zones/ipmgr.conf
+    if test ! -e /etc/bind/zones/ipmgr.conf
+    then
+        echo "# DO NOT EDIT, USE ipmgr ... TO REGENERATE THIS FILE" > /etc/bind/zones/ipmgr.conf
+        echo "# SEE ipmgr(1) FOR ADDITIONAL INFORMATION" >> /etc/bind/zones/ipmgr.conf
+    fi
     if test ! -f /etc/bind/named.conf.local.orig
     then
         cp /etc/bind/named.conf.local /etc/bind/named.conf.local.orig
@@ -34,7 +38,10 @@ then
         /var/lib/ipmgr/zones/README-dynamic-zones.md
 
     # Add default settings to the DNS service
-    # (TODO: look into how to do that so it's useful to everyone)
+    #
+    # TODO: look into how to do that so it's useful to everyone
+    #       i.e. execute all scripts under /usr/share/ipmgr/setup/??-*
+    #       and our defaults may not be of interest to most...
     #
     dns-setup
 

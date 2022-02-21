@@ -23,24 +23,24 @@
 #include    "../ipmgr/version.h"
 
 
-// advgetopt lib
+// advgetopt
 //
 #include    <advgetopt/advgetopt.h>
 #include    <advgetopt/exception.h>
 
 
-// snapdev lib
+// snapdev
 //
 #include    <snapdev/file_contents.h>
 #include    <snapdev/not_reached.h>
 
 
-// boost lib
+// boost
 //
 #include    <boost/preprocessor/stringize.hpp>
 
 
-// C++ lib
+// C++
 //
 #include    <iostream>
 #include    <vector>
@@ -58,50 +58,39 @@ namespace
 
 advgetopt::option const g_options[] =
 {
-    {
-        '\0',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE | advgetopt::GETOPT_FLAG_FLAG,
-        "debug",
-        nullptr,
-        "run %p in debug mode",
-        nullptr
-    },
-    {
-        'e',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_REQUIRED | advgetopt::GETOPT_FLAG_SHOW_USAGE_ON_ERROR,
-        "execute",
-        nullptr,
-        "define a command to execute, see manual for details about syntax;"
-        " <keyword> ( '[' <keyword> | '\"' <string> '\"' ']' )*"                // a keyword with indexes
-            " ( '.' field ( '[' <keyword> | '\"' <string> '\"' ']' )* )*"       // any number of fields with indexes
-            " ( ( '?' | '+' )? '='"                                             // assignment operator (if not GET)
-                " ( 'null' | (<keyword> | '\"' <string> '\"' )+ ) )?",          // value to assign or null (for REMOVE)
-        nullptr
-    },
-    {
-        '\0',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_FLAG,
-        "stdout",
-        nullptr,
-        "print result in stdout instead of overwriting the input file",
-        nullptr
-    },
-    {
-        '\0',
-        advgetopt::GETOPT_FLAG_COMMAND_LINE | advgetopt::GETOPT_FLAG_DEFAULT_OPTION,
-        "--",
-        nullptr,
-        "<named configuration file>",
-        nullptr
-    },
-    {
-        '\0',
-        advgetopt::GETOPT_FLAG_END,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr
-    }
+    advgetopt::define_option(
+          advgetopt::Name("debug")
+        , advgetopt::Flags(advgetopt::option_flags<
+              advgetopt::GETOPT_FLAG_COMMAND_LINE
+            , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE>())
+        , advgetopt::Help("run %p in debug mode")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("execute")
+        , advgetopt::ShortName('e')
+        , advgetopt::Flags(advgetopt::command_flags<
+              advgetopt::GETOPT_FLAG_REQUIRED
+            , advgetopt::GETOPT_FLAG_SHOW_USAGE_ON_ERROR>())
+        , advgetopt::Help(
+            "define a command to execute, see manual for details about syntax;"
+            " <keyword> ( '[' <keyword> | '\"' <string> '\"' ']' )*"                // a keyword with indexes
+                " ( '.' field ( '[' <keyword> | '\"' <string> '\"' ']' )* )*"       // any number of fields with indexes
+                " ( ( '?' | '+' )? '='"                                             // assignment operator (if not GET)
+                    " ( 'null' | (<keyword> | '\"' <string> '\"' )+ ) )?"           // value to assign or null (for REMOVE)
+          )
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("stdout")
+        , advgetopt::Flags(advgetopt::standalone_command_flags<>())
+        , advgetopt::Help("print result in stdout instead of overwriting the input file")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("--")
+        , advgetopt::Flags(advgetopt::command_flags<
+              advgetopt::GETOPT_FLAG_DEFAULT_OPTION>())
+        , advgetopt::Help("print result in stdout instead of overwriting the input file")
+    ),
+    advgetopt::end_options()
 };
 
 
@@ -111,11 +100,11 @@ advgetopt::option const g_options[] =
 #pragma GCC diagnostic ignored "-Wpedantic"
 advgetopt::options_environment const g_options_environment =
 {
-    .f_project_name = "snapwebsites",
+    .f_project_name = "dns-options",
     .f_group_name = nullptr,
     .f_options = g_options,
     .f_options_files_directory = nullptr,
-    .f_environment_variable_name = nullptr,
+    .f_environment_variable_name = "DNS_OPTIONS",
     .f_section_variables_name = nullptr,
     .f_configuration_files = nullptr,
     .f_configuration_filename = nullptr,
@@ -202,6 +191,8 @@ public:
         void            set_end_of_value(int end);
         int             get_end_of_value() const;
 
+        std::string     to_string() const;
+
     private:
         token_type_t    f_type = token_type_t::TOKEN_UNKNOWN;
         std::string     f_word = std::string();        // actual token (may be empty)
@@ -243,6 +234,8 @@ public:
         int             field_value_end() const;
 
         pointer_t       get_parent() const;
+
+        std::string     to_string() const;
 
     private:
         token           f_token = token();          // keyword
@@ -390,6 +383,67 @@ int dns_options::token::get_end_of_value() const
     return f_end_of_value;
 }
 
+
+std::string dns_options::token::to_string() const
+{
+    switch(f_type)
+    {
+    case token_type_t::TOKEN_UNKNOWN:              // unknown token
+        return std::string("--unknown--");
+
+    case token_type_t::TOKEN_EOT:                  // end of tokens
+        return std::string("--end of tokens--");
+
+    case token_type_t::TOKEN_KEYWORD:              // option names & values
+        if(f_word.empty())
+        {
+            return std::string("--?empty keyword?--");
+        }
+        return f_word;
+
+    case token_type_t::TOKEN_STRING:               // "..."
+        return '"' + f_word + '"';
+
+    case token_type_t::TOKEN_OPEN_BLOCK:           // "{"
+        return std::string("{");
+
+    case token_type_t::TOKEN_CLOSE_BLOCK:          // "}"
+        return std::string("}");
+
+    case token_type_t::TOKEN_END_OF_DEFINITION:    // ";"
+        return std::string(";");
+
+    case token_type_t::TOKEN_OPEN_INDEX:           // "["
+        return std::string("[");
+
+    case token_type_t::TOKEN_CLOSE_INDEX:          // "]"
+        return std::string("]");
+
+    case token_type_t::TOKEN_FIELD:                // "."
+        return std::string(".");
+
+    case token_type_t::TOKEN_ASSIGN:               // "="
+        return std::string("=");
+
+    case token_type_t::TOKEN_UPDATE:               // "+="
+        return std::string("+=");
+
+    case token_type_t::TOKEN_CREATE:               // "?="
+        return std::string("?=");
+
+    case token_type_t::TOKEN_REMOVE:               // "=" "null"
+        return std::string("--REMOVE--");
+
+    case token_type_t::TOKEN_GET:                  // no "=", no value
+        return std::string("--GET--");
+
+    case token_type_t::TOKEN_ERROR:                // an error occurred
+        return std::string("--ERROR--");
+
+    }
+    snapdev::NOT_REACHED();
+    return std::string();
+}
 
 
 
@@ -540,6 +594,57 @@ int dns_options::keyword::field_value_end() const
 dns_options::keyword::pointer_t dns_options::keyword::get_parent() const
 {
     return f_parent;
+}
+
+
+std::string dns_options::keyword::to_string() const
+{
+    std::string result(f_token.to_string());
+
+    for(auto const & i : f_index)
+    {
+        result += '[';
+        result += i->to_string();
+        result += ']';
+    }
+
+    for(auto const & f : f_fields)
+    {
+        result += '.';
+        result += f->to_string();
+    }
+
+    if(f_command != token_type_t::TOKEN_GET)
+    {
+        result += ' ';
+        switch(f_command)
+        {
+        case token_type_t::TOKEN_CREATE:
+            result += "?=";
+            break;
+
+        case token_type_t::TOKEN_UPDATE:
+            result += '+';
+            [[fallthrough]];
+        case token_type_t::TOKEN_ASSIGN:
+        case token_type_t::TOKEN_REMOVE:
+            result += '=';
+            break;
+
+        default:
+            result += "--UNKNOWN COMMAND--";
+            break;
+
+        }
+
+        for(auto const & v : f_value)
+        {
+            result += ' ';
+            result += v->to_string();
+        }
+    }
+
+    return result;
 }
 
 
@@ -785,7 +890,7 @@ void dns_options::ungetc(int c)
  *
  * This function gets the next token and saves it to the f_token parameter.
  *
- * \param[in] extensions  Whether the function supports our extensions.
+ * \param[in] extensions  Whether the function accepts our extensions.
  *
  * \return 0 when no errors were encountered, 1 otherwise.
  */
@@ -802,6 +907,10 @@ dns_options::token dns_options::get_token(bool extensions)
         switch(c)
         {
         case EOF:
+            if(!f_unget.empty())
+            {
+                throw std::logic_error("getc() returned EOF and f_unget is not empty.");
+            }
             result.set_type(token_type_t::TOKEN_EOT);
             result.set_end(f_pos - f_unget.length());
             return result;
@@ -1328,7 +1437,7 @@ int dns_options::parse_command_line()
         return 0;
     }
 
-    // read the value
+    // read the value to be assigned
     //
     for(;; t = get_token(false))
     {
@@ -1615,8 +1724,8 @@ int dns_options::recursive_option(keyword::pointer_t in)
  *
  * \bug
  * The creation is not recursive. So if you want to create `a { b { c 123; } }`
- * where `a` or `b` do not yet exist, it will not work. If `a` and `b` do not
- * exist, but `c` does exist, then we create `c` as expected.
+ * where `a` or `b` do not yet exist, it will not work. If `a` and `b` exist,
+ * but `c` does not exist, then we create `c` as expected.
  *
  * \bug
  * There are potential problems with the use of `"*"` and the creation of
@@ -1669,6 +1778,7 @@ std::cerr << "types: "
             keyword::pointer_t result(match_fields(field_idx, v, previous_level));
 #if 0
 std::cerr << " == matching result " << (result == nullptr ? "nullptr" : "YES")
+          << " at idx " << field_idx
           << ", previous_level " << (previous_level == nullptr ? "nullptr" : "YES")
           << "\n";
 #endif
@@ -1685,13 +1795,16 @@ std::cerr << "------- found [" << f_execute << "] (" << start << ", " << end << 
                 case token_type_t::TOKEN_ASSIGN:
                 case token_type_t::TOKEN_UPDATE:
                     {
-                        auto const & field(*f_keyword->get_fields().rbegin());
-                        std::string field_name(field->get_token().get_word());
-                        if(field_name == "_")
+                        if(!f_keyword->get_fields().empty())
                         {
-                            // nothing to do, the unnamed value already exists
-                            //
-                            break;
+                            auto const & field(*f_keyword->get_fields().rbegin());
+                            std::string field_name(field->get_token().get_word());
+                            if(field_name == "_")
+                            {
+                                // nothing to do, the unnamed value already exists
+                                //
+                                break;
+                            }
                         }
 
                         int const replacement_start(f_keyword->value_start());
@@ -2462,14 +2575,20 @@ int main(int argc, char * argv[])
         dns_options o(argc, argv);
         r = o.run();
     }
-    catch( advgetopt::getopt_exit const & except )
+    catch(advgetopt::getopt_exit const & e)
     {
-        return except.code();
+        return e.code();
     }
     catch(std::exception const & e)
     {
-        std::cerr << "dns_options:error: an exception occurred: "
+        std::cerr << "dns-options:error: an exception occurred: "
                   << e.what()
+                  << std::endl;
+        r = 1;
+    }
+    catch(...)
+    {
+        std::cerr << "dns-options:error: an unknown exception occurred."
                   << std::endl;
         r = 1;
     }
