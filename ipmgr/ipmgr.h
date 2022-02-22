@@ -66,29 +66,30 @@ public:
         std::string             get_zone_param(
                                       std::string const & name
                                     , std::string const & default_name = std::string()
-                                    , std::string const & default_value = std::string());
+                                    , std::string const & default_value = std::string()) const;
         bool                    get_zone_bool(
                                       std::string const & name
                                     , std::string const & default_name = std::string()
-                                    , std::string const & default_value = std::string());
+                                    , std::string const & default_value = std::string()) const;
         std::int32_t            get_zone_integer(
                                       std::string const & name
                                     , std::string const & default_name = std::string()
-                                    , std::int32_t default_value = 0);
+                                    , std::int32_t default_value = 0) const;
         std::int64_t            get_zone_duration(
                                       std::string const & name
                                     , std::string const & default_name = std::string()
-                                    , std::string const & default_value = std::string());
+                                    , std::string const & default_value = std::string()) const;
         std::string             get_zone_email(
                                       std::string const & name
                                     , std::string const & default_name
-                                    , std::string const & default_value);
+                                    , std::string const & default_value) const;
 
         bool                    retrieve_fields();
         std::string             group() const;
         std::string             domain() const;
         dynamic_t               dynamic() const;
         std::string             generate_zone_file();
+        std::uint32_t           get_zone_serial(bool next = false);
 
     private:
         bool                    retrieve_group();
@@ -105,7 +106,6 @@ public:
         bool                    retrieve_mail_fields();
         bool                    retrieve_dynamic();
         bool                    retrieve_all_sections();
-        std::uint32_t           get_zone_serial(bool next = false);
 
         advgetopt::getopt::pointer_t        f_opt = advgetopt::getopt::pointer_t();
         bool                                f_verbose = false;

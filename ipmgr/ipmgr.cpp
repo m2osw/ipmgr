@@ -461,7 +461,7 @@ void ipmgr::zone_files::add(advgetopt::conf_file::pointer_t zone)
 std::string ipmgr::zone_files::get_zone_param(
           std::string const & name
         , std::string const & default_name
-        , std::string const & default_value)
+        , std::string const & default_value) const
 {
     // we have to go in reverse and this is a vector so we simply use the
     // index going backward
@@ -492,7 +492,7 @@ std::string ipmgr::zone_files::get_zone_param(
 bool ipmgr::zone_files::get_zone_bool(
           std::string const & name
         , std::string const & default_name
-        , std::string const & default_value)
+        , std::string const & default_value) const
 {
     std::string const value(get_zone_param(name, default_name, default_value));
 
@@ -519,7 +519,7 @@ bool ipmgr::zone_files::get_zone_bool(
 std::int32_t ipmgr::zone_files::get_zone_integer(
           std::string const & name
         , std::string const & default_name
-        , std::int32_t default_value)
+        , std::int32_t default_value) const
 {
     std::string const value(get_zone_param(name, default_name));
 
@@ -563,7 +563,7 @@ std::int32_t ipmgr::zone_files::get_zone_integer(
 std::int64_t ipmgr::zone_files::get_zone_duration(
           std::string const & name
         , std::string const & default_name
-        , std::string const & default_value)
+        , std::string const & default_value) const
 {
     std::string const value(get_zone_param(
                                       name
@@ -593,7 +593,7 @@ std::int64_t ipmgr::zone_files::get_zone_duration(
 std::string ipmgr::zone_files::get_zone_email(
           std::string const & name
         , std::string const & default_name
-        , std::string const & default_value)
+        , std::string const & default_value) const
 {
     std::string const value(get_zone_param(
                                       name
@@ -650,6 +650,10 @@ std::string ipmgr::zone_files::get_zone_email(
 
 std::uint32_t ipmgr::zone_files::get_zone_serial(bool next)
 {
+    // reset to default
+    //
+    std::uint32_t serial(1);
+
 #ifdef _DEBUG
     // the domain must be retrieved before the nameservers
     //
@@ -659,20 +663,169 @@ std::uint32_t ipmgr::zone_files::get_zone_serial(bool next)
     }
 #endif
 
-    std::string path("/var/lib/ipmgr/serial/" + f_domain + ".counter");
+    // zones make use of the serial number found in our serial cache
+    // note, however, that we make use of the serial from the SOA
+    // when updating a dynamic file
+    //
+    std::string const path("/var/lib/ipmgr/serial/" + f_domain + ".counter");
 
-    std::uint32_t serial(1);
-
-    struct stat s = {};
-    if(stat(path.c_str(), &s) != 0
-    || s.st_size != sizeof(uint32_t))
+    if(f_dynamic == dynamic_t::DYNAMIC_STATIC)
     {
-        std::ofstream out(path);
-        out.write(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
-        if(!out.good())
+        struct stat s = {};
+        if(stat(path.c_str(), &s) != 0
+        || s.st_size != sizeof(uint32_t))
+        {
+            std::ofstream out(path);
+            out.write(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
+            if(!out.good())
+            {
+                SNAP_LOG_ERROR
+                    << "could not create new serial number file \""
+                    << path
+                    << "\" for zone of \""
+                    << f_domain
+                    << "\" domain."
+                    << SNAP_LOG_SEND;
+                return 0;
+            }
+        }
+
+        std::fstream file(path);
+        file.read(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
+        if(!file.good())
         {
             SNAP_LOG_ERROR
-                << "could not create new serial number file \""
+                << "could not read serial number to file \""
+                << path
+                << "\" for zone of \""
+                << f_domain
+                << "\" domain."
+                << SNAP_LOG_SEND;
+            return 0;
+        }
+    }
+    else
+    {
+        // this is a dynamic zone and each update to the zone imply an
+        // increment to the SOA serial number and so we have to go get
+        // that number "by hand" to make sure we are up to date when
+        // regenerating the files
+        //
+        serial = 0;
+        std::string const dynamic_filename("/var/lib/bind/" + f_domain + ".zone");
+        std::ifstream in(dynamic_filename);
+        std::string line;
+        bool found(false);
+        while(std::getline(in, line))
+        {
+            std::string ln(snapdev::trim_string(line));
+            bool quoted(false);
+            std::size_t len(ln.size());
+            for(std::size_t i(0); i < len; ++i)
+            {
+                // TBD: do string support backslashes for escaping?
+                //
+                if(ln[i] == '"')
+                {
+                    quoted = !quoted;
+                }
+                else if(!quoted
+                     && ln[i] == ';')
+                {
+                    ln = ln.substr(0, i);
+                    break;
+                }
+            }
+
+            if(!found)
+            {
+                advgetopt::string_list_t tokens;
+                advgetopt::split_string(
+                          ln
+                        , tokens
+                        , {" ", "\t"});
+                if(tokens.size() >= 3
+                && tokens[2] == "SOA")
+                {
+                    found = true;
+
+                    // we found the SOA entry now we need to search for the
+                    // parenthesis and then read the first number; the
+                    // parenthesis is expected on the same line, but the
+                    // number can be further down
+                    //
+                    std::string::size_type const n(ln.find('('));
+                    if(n != std::string::npos)
+                    {
+                        ln = ln.substr(n + 1);
+                    }
+                }
+            }
+
+            if(found
+            && !ln.empty())
+            {
+                // ln must include that number, it may be followed by
+                // another number, though
+                //
+                advgetopt::string_list_t tokens;
+                advgetopt::split_string(
+                          ln
+                        , tokens
+                        , {" ", "\t"});
+                if(tokens.size() > 0)
+                {
+                    std::int64_t s(0);
+                    if(advgetopt::validator_integer::convert_string(tokens[0], s))
+                    {
+                        if(s > 0
+                        && s < 65536)
+                        {
+                            serial = s;
+                        }
+                    }
+                }
+
+                break;
+            }
+        }
+    }
+
+    if(serial == 0)
+    {
+        if(f_dynamic == dynamic_t::DYNAMIC_STATIC)
+        {
+            SNAP_LOG_ERROR
+                << "Serial for \""
+                << f_domain
+                << "\" could not be read from our serial counter file."
+                << SNAP_LOG_SEND;
+        }
+        else
+        {
+            SNAP_LOG_ERROR
+                << "Serial for \""
+                << f_domain
+                << "\" could not be read from the zone SOA."
+                << SNAP_LOG_SEND;
+        }
+        return 0;
+    }
+
+    if(next)
+    {
+        ++serial;
+        if(serial == 0)
+        {
+            serial = 1;
+        }
+
+        std::fstream file(path);
+        file.write(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
+        if(!file.good())
+        {
+            SNAP_LOG_ERROR
+                << "could not write serial number to file \""
                 << path
                 << "\" for zone of \""
                 << f_domain
@@ -682,32 +835,9 @@ std::uint32_t ipmgr::zone_files::get_zone_serial(bool next)
         }
     }
 
-    std::fstream file(path);
-    file.read(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
-    if(next)
-    {
-        ++serial;
-        if(serial == 0)
-        {
-            serial = 1;
-        }
-        file.seekp(0, std::ios_base::beg);
-        file.write(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
-    }
+    f_serial = serial;
 
-    if(!file.good())
-    {
-        SNAP_LOG_ERROR
-            << "could not read and/or write serial number to file \""
-            << path
-            << "\" for zone of \""
-            << f_domain
-            << "\" domain."
-            << SNAP_LOG_SEND;
-        return 0;
-    }
-
-    return serial;
+    return f_serial;
 }
 
 
@@ -725,13 +855,13 @@ bool ipmgr::zone_files::retrieve_fields()
         &ipmgr::zone_files::retrieve_ips,
         &ipmgr::zone_files::retrieve_nameservers,
         &ipmgr::zone_files::retrieve_hostmaster,
+        &ipmgr::zone_files::retrieve_dynamic,
         &ipmgr::zone_files::retrieve_serial,
         &ipmgr::zone_files::retrieve_refresh,
         &ipmgr::zone_files::retrieve_retry,
         &ipmgr::zone_files::retrieve_expire,
         &ipmgr::zone_files::retrieve_minimum_cache_failures,
         &ipmgr::zone_files::retrieve_mail_fields,
-        &ipmgr::zone_files::retrieve_dynamic,
         &ipmgr::zone_files::retrieve_all_sections,
     };
 
@@ -905,19 +1035,7 @@ bool ipmgr::zone_files::retrieve_hostmaster()
 
 bool ipmgr::zone_files::retrieve_serial()
 {
-    f_serial = get_zone_serial();
-
-    if(f_serial == 0)
-    {
-        SNAP_LOG_ERROR
-            << "Serial for \""
-            << f_domain
-            << "\" is zero."
-            << SNAP_LOG_SEND;
-        return false;
-    }
-
-    return true;
+    return get_zone_serial() != 0;
 }
 
 
@@ -1452,7 +1570,8 @@ std::string ipmgr::zone_files::generate_zone_file()
                         auto it(f_nameservers.find(d + '.' + f_domain));
                         if(it != f_nameservers.end())
                         {
-                            if(!it->second.empty())
+                            if(!it->second.empty()
+                            && it->second != address)
                             {
                                 SNAP_LOG_ERROR
                                     << "a subdomain nameserver can only be given one IP address, found "
@@ -2022,6 +2141,26 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
         }
     }
 
+    if(zone->dynamic() != zone_files::dynamic_t::DYNAMIC_STATIC)
+    {
+        stop_bind9();
+    }
+
+    // the zone changed or is forcibly refreshed so increment the serial number
+    //
+    if(zone->get_zone_serial(true) == 0)
+    {
+        return 1;
+    }
+
+    z = zone->generate_zone_file();
+    if(z.empty())
+    {
+        // generation failed
+        //
+        return 1;
+    }
+
     // raise flag that something changed and a restart will be required
     //
     // this file goes under /run so we don't take the risk of restarting
@@ -2140,15 +2279,7 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
     // server first, otherwise it could try to update the file
     // under our feet
     //
-    r = bind9_is_active();
-    if(r != 0)
-    {
-        return r;
-    }
-    if(f_bind9_is_active == active_t::ACTIVE_YES)
-    {
-        stop_bind9();
-    }
+    stop_bind9();
 
     //if(access(dynamic_filename, F_OK) != 0
     //|| zone->dynamic() != dynamic_t::DYNAMIC_LOCAL)
@@ -2332,6 +2463,8 @@ int ipmgr::bind9_is_active()
 
 int ipmgr::stop_bind9()
 {
+    int r(0);
+
     // make sure we try to stop only once (it's rather slow to repeat this
     // call otherwise even if it's safe)
     //
@@ -2340,6 +2473,16 @@ int ipmgr::stop_bind9()
         return 0;
     }
     f_stopped_bind9 = true;
+
+    r = bind9_is_active();
+    if(r != 0)
+    {
+        return r;
+    }
+    if(f_bind9_is_active != active_t::ACTIVE_YES)
+    {
+        return 0;
+    }
 
     // stop the DNS server
     //
@@ -2353,7 +2496,7 @@ int ipmgr::stop_bind9()
     }
     if(!f_dry_run)
     {
-        int const r(system(cmd));
+        r = system(cmd);
         if(r != 0)
         {
             SNAP_LOG_FATAL
@@ -2423,22 +2566,17 @@ int ipmgr::restart_bind9()
         }
     }
 
-    r = bind9_is_active();
+    r = stop_bind9();
     if(r != 0)
     {
         return r;
     }
+
     if(f_bind9_is_active == active_t::ACTIVE_NO)
     {
         // it was not active when we started ipmgr, so do nothing more here
         //
         return 0;
-    }
-
-    r = stop_bind9();
-    if(r != 0)
-    {
-        return r;
     }
 
     // clear the journals
