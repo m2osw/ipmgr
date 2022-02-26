@@ -1,3 +1,10 @@
+ipmgr (1.0.31.0~bionic) bionic; urgency=high
+
+  * Also change the Socket parameter in the .conf because it looks like
+    it gets used even though there is a /etc/default/opendmarc variable.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 26 Feb 2022 11:27:28 -0800
+
 ipmgr (1.0.30.0~bionic) bionic; urgency=high
 
   * Fixed the change to the opendmarc defaults (removed the `=` and

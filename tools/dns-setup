@@ -97,6 +97,7 @@ ${EDIT_CONFIG} --space ${OPENDKIM_CONF} AutoRestart yes
 ${EDIT_CONFIG} --space ${OPENDKIM_CONF} AutoRestartRate 10/1h
 #${EDIT_CONFIG} --space ${OPENDKIM_CONF} Mode sv
 
+${EDIT_CONFIG} --space ${OPENDMARC_CONF} Socket inet:54321@localhost
 ${EDIT_CONFIG} --space ${OPENDMARC_CONF} IgnoreHosts /etc/opendmarc/ignore_hosts
 ${EDIT_CONFIG} --space ${OPENDMARC_CONF} HistoryFile /run/opendmarc/opendmarc.dat
 
