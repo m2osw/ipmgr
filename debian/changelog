@@ -1,3 +1,11 @@
+ipmgr (1.0.30.0~bionic) bionic; urgency=high
+
+  * Fixed the change to the opendmarc defaults (removed the `=` and
+    made the field name all caps).
+  * Properly ignore exit(3) from `systemctl is-active`.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 26 Feb 2022 10:53:13 -0800
+
 ipmgr (1.0.29.0~bionic) bionic; urgency=high
 
   * Improperly installed the ignore_hosts to /etc/opendkim.

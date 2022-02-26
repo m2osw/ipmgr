@@ -2878,7 +2878,8 @@ int ipmgr::bind9_is_active()
             return 1;
         }
         int const r(is_active_process.wait());
-        if(r != 0)
+        if(r != 0
+        && r != 3)  // 3 is returned if the unit is not active
         {
             SNAP_LOG_FATAL
                 << "command \""
@@ -3114,7 +3115,8 @@ int ipmgr::restart_opendkim()
             return 1;
         }
         r = is_active_process.wait();
-        if(r != 0)
+        if(r != 0
+        && r != 3)  // 3 is returned if the unit is not active
         {
             SNAP_LOG_FATAL
                 << "command \""
@@ -3219,7 +3221,8 @@ int ipmgr::restart_opendmarc()
             return 1;
         }
         r = is_active_process.wait();
-        if(r != 0)
+        if(r != 0
+        && r != 3)  // 3 is returned if the unit is not active
         {
             SNAP_LOG_FATAL
                 << "command \""
