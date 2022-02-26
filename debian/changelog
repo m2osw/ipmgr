@@ -1,3 +1,13 @@
+ipmgr (1.0.27.0~bionic) bionic; urgency=high
+
+  * Added support for SPF1.
+  * Added support for DMARC.
+  * Added support for DKIM.
+  * Install the corresponding packages.
+  * Automatically restart opendkim/opendmarc as required.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 26 Feb 2022 07:03:59 -0800
+
 ipmgr (1.0.26.0~bionic) bionic; urgency=high
 
   * Applied a fix to the serial number. It needs to be incremented and for

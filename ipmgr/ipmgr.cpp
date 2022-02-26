@@ -329,7 +329,9 @@ advgetopt::options_environment const g_iplock_options_environment =
 
 
 
-char const * g_bind9_need_restart = "/run/ipmgr/bind9-need-restart";
+char const * const g_bind9_need_restart = "/run/ipmgr/bind9-need-restart";
+char const * const g_opendkim_need_restart = "/run/ipmgr/opendkim-need-restart";
+char const * const g_opendmarc_need_restart = "/run/ipmgr/opendmarc-need-restart";
 
 
 
@@ -447,6 +449,7 @@ bool validate_ips(advgetopt::string_list_t & ip_list)
 
 ipmgr::zone_files::zone_files(advgetopt::getopt::pointer_t opt, bool verbose)
     : f_opt(opt)
+    , f_dry_run(f_opt->is_defined("dry-run"))
     , f_verbose(verbose)
 {
 }
@@ -841,6 +844,23 @@ std::uint32_t ipmgr::zone_files::get_zone_serial(bool next)
 }
 
 
+std::string ipmgr::zone_files::get_zone_mail_subdomain() const
+{
+    if(f_mail_subdomains.empty())
+    {
+        return std::string();
+    }
+
+    return f_mail_subdomains[0] + '.' + f_domain;
+}
+
+
+bool ipmgr::zone_files::is_auth_server() const
+{
+    return f_auth_server;
+}
+
+
 bool ipmgr::zone_files::retrieve_fields()
 {
     typedef bool (ipmgr::zone_files::*retrieve_func_t)();
@@ -1203,6 +1223,20 @@ bool ipmgr::zone_files::retrieve_mail_fields()
     {
         f_mail_ttl = 60;
     }
+
+    // the corresponding key TTL
+    //
+    f_key_ttl = get_zone_duration(mail_section + "::key_ttl", std::string(), "1800");
+    if(f_key_ttl < 0)
+    {
+        return false;
+    }
+    if(f_key_ttl < 60)
+    {
+        f_key_ttl = 60;
+    }
+
+    f_auth_server = get_zone_bool(mail_section + "::auth_server", std::string(), "false");
 
     return true;
 }
@@ -1692,9 +1726,300 @@ std::string ipmgr::zone_files::generate_zone_file()
         zone_data << d << '\n';
     }
 
+    if(!f_mail_subdomains.empty())
+    {
+        // spf v1
+        //
+        // https://en.wikipedia.org/wiki/Sender_Policy_Framework
+        //
+        zone_data
+            << '\t'
+            << f_key_ttl
+            << " TXT\t\"v=spf1 a:"
+            << f_mail_subdomains[0]
+            << '.'
+            << f_domain
+            << " a:"
+            << f_domain
+            << " -all\"\n";
+    }
+
     // switch to the subdomains now
     //
     zone_data << "$ORIGIN " << f_domain << ".\n";
+
+    // if there is an MX, handle the special fields for that
+    //
+    if(!f_mail_subdomains.empty())
+    {
+        // opendkim
+        //
+        std::string opendkim_path("/etc/opendkim/");
+        std::string path(opendkim_path);
+        path += f_domain;
+        path += ".key";
+        if(snapdev::mkdir_p(path) != 0)
+        {
+            SNAP_LOG_ERROR
+                << "failed creating \"/etc/opendkim\" for domain \""
+                << f_domain
+                << "\"."
+                << SNAP_LOG_SEND;
+            return std::string();
+        }
+        std::string mailtxt(path);
+        mailtxt += "/mail.txt";
+        struct stat s;
+        if(stat(mailtxt.c_str(), &s) != 0)
+        {
+            if(errno != ENOENT)
+            {
+                SNAP_LOG_ERROR
+                    << "access to \""
+                    << mailtxt
+                    << "\" failed for domain \""
+                    << f_domain
+                    << "\"."
+                    << SNAP_LOG_SEND;
+                return std::string();
+            }
+
+            // the key doesn't exist yet, create it now
+            //
+            std::string cmd("opendkim-genkey --directory=");
+            cmd += path;
+            cmd += " --selector=";
+            cmd += f_mail_subdomains[0]; // TBD: I'm not so sure this is correct, but it works for us...
+            cmd += " --domain='";
+            cmd += f_domain;
+            cmd += "'";
+
+            if(f_verbose)
+            {
+                std::cout
+                    << "info: "
+                    << cmd
+                    << std::endl;
+            }
+            if(!f_dry_run)
+            {
+                int const r(system(cmd.c_str()));
+                if(r != 0)
+                {
+                    SNAP_LOG_FATAL
+                        << "could not generate an OpenDKIM key for \""
+                        << f_domain
+                        << "\" (exit code = "
+                        << r
+                        << ")."
+                        << SNAP_LOG_SEND;
+                    return std::string();
+                }
+
+                if(stat(mailtxt.c_str(), &s) != 0)
+                {
+                    SNAP_LOG_FATAL
+                        << "command \""
+                        << cmd
+                        << "\" did not generate expected file \""
+                        << mailtxt
+                        << "\" for \""
+                        << f_domain
+                        << "\"."
+                        << SNAP_LOG_SEND;
+                    return std::string();
+                }
+
+                // it worked, update the corresponding tables
+
+                // signing_table
+                //
+                std::string signing_filename(opendkim_path);
+                signing_filename += "/signing_table";
+                snapdev::file_contents signing_file(signing_filename);
+                signing_file.read_all();
+                std::string contents(signing_file.contents());
+                std::string::size_type pos(contents.find(f_domain));
+                if(pos != std::string::npos)
+                {
+                    // remove that line if it exists
+                    //
+                    std::string::size_type end(contents.find('\n', pos));
+                    if(end == std::string::npos)
+                    {
+                        end = contents.length();
+                    }
+                    else
+                    {
+                        ++end;
+                    }
+                    contents = contents.substr(0, pos)
+                             + contents.substr(end);
+                }
+                std::string key_id(f_mail_subdomains[0]);
+                key_id += "._domainkey.";
+                key_id += f_domain;
+                if(contents.empty())
+                {
+                    contents = "# WARNING: AUTO-GENERATED FILE, SEE ipmgr(1) FOR DETAILS\n";
+                }
+                contents += f_domain;
+                contents += ' ';
+                contents += key_id;
+                contents += '\n';
+                if(signing_file.contents() != contents)
+                {
+                    signing_file.contents(contents);
+                    if(!signing_file.write_all())
+                    {
+                        SNAP_LOG_FATAL
+                            << "an I/O error occurred trying to write to \""
+                            << signing_filename
+                            << "\" for \""
+                            << f_domain
+                            << "\"."
+                            << SNAP_LOG_SEND;
+                        return std::string();
+                    }
+                }
+
+                // key_table
+                //
+                std::string key_filename(opendkim_path);
+                key_filename += "/key_table";
+                snapdev::file_contents key_file(key_filename);
+                key_file.read_all();
+                contents = key_file.contents();
+                pos = contents.find(key_id);
+                if(pos != std::string::npos)
+                {
+                    // remove that line if it exists
+                    //
+                    std::string::size_type end(contents.find('\n', pos));
+                    if(end == std::string::npos)
+                    {
+                        end = contents.length();
+                    }
+                    else
+                    {
+                        ++end;
+                    }
+                    contents = contents.substr(0, pos)
+                             + contents.substr(end);
+                }
+                if(contents.empty())
+                {
+                    contents = "# WARNING: AUTO-GENERATED FILE, SEE ipmgr(1) FOR DETAILS\n";
+                }
+                contents += key_id;
+                contents += ' ';
+                contents += f_domain;
+                contents += ":mail:";
+                contents += path;
+                contents += "/mail.private\n";
+                if(key_file.contents() != contents)
+                {
+                    key_file.contents(contents);
+                    if(!key_file.write_all())
+                    {
+                        SNAP_LOG_FATAL
+                            << "an I/O error occurred trying to write to \""
+                            << key_filename
+                            << "\" for \""
+                            << f_domain
+                            << "\"."
+                            << SNAP_LOG_SEND;
+                        return std::string();
+                    }
+                }
+
+                snapdev::file_contents flag(g_opendkim_need_restart, true);
+                flag.contents("*** opendkim restart required ***\n");
+                if(!flag.write_all())
+                {
+                    SNAP_LOG_MINOR
+                        << "could not write to file \""
+                        << g_opendkim_need_restart
+                        << "\": "
+                        << flag.last_error()
+                        << SNAP_LOG_SEND;
+                }
+            }
+        }
+        else if(!S_ISREG(s.st_mode))
+        {
+            SNAP_LOG_FATAL
+                << "\""
+                << mailtxt
+                << "\" is not a regular file for \""
+                << f_domain
+                << "\"."
+                << SNAP_LOG_SEND;
+            return std::string();
+        }
+        snapdev::file_contents txt(mailtxt);
+        if(!txt.read_all())
+        {
+            // this is normal in a dry-run, otherwise we should
+            // have failed earlier anyway
+            //
+            SNAP_LOG_WARNING
+                << "OpenDKIM key for \""
+                << f_domain
+                << "\" not available."
+                << SNAP_LOG_SEND;
+        }
+        else
+        {
+            zone_data << "adsp._domainkey\t" << f_key_ttl << " TXT\t\"dkim=all\"\n";
+
+            // the opendkim-genkey generates a key file, but the line does
+            // not include a TTL so we do a little bit of work on it
+            //
+            std::string const & key(txt.contents());
+            for(char const * k(key.c_str());; ++k)
+            {
+                if(*k == '\0')
+                {
+                    SNAP_LOG_FATAL
+                        << "OpenDKIM key for \""
+                        << f_domain
+                        << "\" does not include any blanks."
+                        << SNAP_LOG_SEND;
+                    return std::string();
+                }
+                if(isspace(*k))
+                {
+                    zone_data << '\t';
+                    zone_data << f_key_ttl;
+                    zone_data << ' ';
+                    do
+                    {
+                        ++k;
+                    }
+                    while(*k != '\0' && isspace(*k));
+                    if(k[0] == 'I' && k[1] == 'N' && isspace(k[2]))
+                    {
+                        k += 3;
+                        while(*k != '\0' && isspace(*k))
+                        {
+                            ++k;
+                        }
+                    }
+                    zone_data << k;
+                    break;
+                }
+                zone_data << *k;
+            }
+        }
+
+        // opendmarc
+        //
+        zone_data
+            << "_dmarc\t"
+            << f_key_ttl
+            << " TXT\t\"v=DMARC1; p=quarantine; fo=0; adkim=r; aspf=r; pct=100; rf=afrf; sp=quarantine\"\n";
+    }
 
     for(auto const & d : sorted_subdomains)
     {
@@ -1769,7 +2094,7 @@ std::string ipmgr::zone_files::generate_zone_file()
             SNAP_LOG_FATAL
                 << "command \""
                 << named_checkzone.get_command_line()
-                << "\" return an error (exit code "
+                << "\" returned an error (exit code "
                 << r
                 << "): stdout \""
                 << results
@@ -2395,6 +2720,123 @@ int ipmgr::process_zones()
 }
 
 
+int ipmgr::process_opendmarc()
+{
+    bool changed(false);
+
+    std::string cmd("edit-config --no-warning --space /etc/opendmarc.conf TrustedAuthservIDs ");
+    bool has_trusted_mail(false);
+    std::string auth_server_id;
+    for(auto & z : f_zone_files)
+    {
+        std::string const trusted(z.second->get_zone_mail_subdomain());
+        if(!trusted.empty())
+        {
+            if(z.second->is_auth_server())
+            {
+                if(auth_server_id.empty())
+                {
+                    auth_server_id = trusted;
+                }
+                else
+                {
+                    SNAP_LOG_ERROR
+                        << "found two authoritative mail servers: \""
+                        << trusted
+                        << "\" and \""
+                        << auth_server_id
+                        << "\" when you can only have one."
+                        << SNAP_LOG_SEND;
+                    return 1;
+                }
+            }
+            if(has_trusted_mail)
+            {
+                cmd += ',';
+            }
+            else
+            {
+                has_trusted_mail = true;
+            }
+            cmd += trusted;
+        }
+    }
+    if(has_trusted_mail)
+    {
+        if(f_verbose)
+        {
+            std::cout
+                << "info: "
+                << cmd
+                << std::endl;
+        }
+        if(!f_dry_run)
+        {
+            int const r(system(cmd.c_str()));
+            if(r != 0)
+            {
+                SNAP_LOG_ERROR
+                    << "updating the opendmarc configuration file with the list of trusted mail servers failed."
+                    << SNAP_LOG_SEND;
+                return r;
+            }
+            changed = true;
+        }
+    }
+
+    if(auth_server_id.empty())
+    {
+        SNAP_LOG_WARNING
+            << "no authoritative mail server found; opendmarc may not work as expected."
+            << SNAP_LOG_SEND;
+    }
+    else
+    {
+        // this should be the MTA name (i.e. we shouldn't have to have
+        // the user define which entry is the authoritative one)
+        //
+        cmd = "edit-config --space /etc/opendmarc.conf AuthservID ";
+        cmd += auth_server_id;
+        if(f_verbose)
+        {
+            std::cout
+                << "info: "
+                << cmd
+                << std::endl;
+        }
+        if(!f_dry_run)
+        {
+            int const r(system(cmd.c_str()));
+            if(r != 0)
+            {
+                SNAP_LOG_ERROR
+                    << "updating the opendmarc configuration file with the list of trusted mail servers failed."
+                    << SNAP_LOG_SEND;
+                return r;
+            }
+            changed = true;
+        }
+    }
+
+    if(changed)
+    {
+        snapdev::file_contents flag(g_opendmarc_need_restart, true);
+        flag.contents("*** opendmarc restart required ***\n");
+        if(!flag.write_all())
+        {
+            SNAP_LOG_MINOR
+                << "could not write to file \""
+                << g_opendmarc_need_restart
+                << "\": "
+                << flag.last_error()
+                << SNAP_LOG_SEND;
+        }
+    }
+
+    return 0;
+}
+
+
 int ipmgr::bind9_is_active()
 {
     // we must check only once because we may get called more than once
@@ -2441,7 +2883,7 @@ int ipmgr::bind9_is_active()
             SNAP_LOG_FATAL
                 << "command \""
                 << is_active_process.get_command_line()
-                << "\" return an error (exit code "
+                << "\" returned an error (exit code "
                 << r
                 << ")."
                 << SNAP_LOG_SEND;
@@ -2574,8 +3016,12 @@ int ipmgr::restart_bind9()
 
     if(f_bind9_is_active == active_t::ACTIVE_NO)
     {
-        // it was not active when we started ipmgr, so do nothing more here
+        // it was not active when we started ipmgr
         //
+        if(!f_dry_run)
+        {
+            snapdev::NOT_USED(unlink(g_bind9_need_restart));
+        }
         return 0;
     }
 
@@ -2608,26 +3054,228 @@ int ipmgr::restart_bind9()
 
     // remove the flag telling us that the restart we requested
     //
-    std::string done_restart("rm -f ");
-    done_restart += g_bind9_need_restart;
     if(f_verbose)
     {
         std::cout
-            << "info: "
-            << done_restart
+            << "info: rm -f "
+            << g_bind9_need_restart
             << std::endl;
     }
     if(!f_dry_run)
     {
-        r = system(done_restart.c_str());
+        // ignore errors on this one
+        //
+        snapdev::NOT_USED(unlink(g_bind9_need_restart));
+    }
+
+    return 0;
+}
+
+
+int ipmgr::restart_opendkim()
+{
+    int r(0);
+
+    // restart necessary?
+    //
+    if(access(g_opendkim_need_restart, F_OK) != 0)
+    {
+        return 0;
+    }
+
+    // we do not want to force a restart if opendkim is not currently
+    // active (i.e. it may have been stopped by the user for a while)
+    //
+    cppprocess::process is_active_process("opendkim-is-active?");
+    is_active_process.set_command("systemctl");
+    is_active_process.add_argument("is-active");
+    is_active_process.add_argument("opendkim");
+
+    cppprocess::io_capture_pipe::pointer_t output(std::make_shared<cppprocess::io_capture_pipe>());
+    is_active_process.set_output_io(output);
+
+    if(f_verbose)
+    {
+        std::cout
+            << "info: "
+            << is_active_process.get_command_line()
+            << std::endl;
+    }
+
+    if(!f_dry_run)
+    {
+        if(is_active_process.start() != 0)
+        {
+            SNAP_LOG_FATAL
+                << "could not start \""
+                << is_active_process.get_command_line()
+                << "\"."
+                << SNAP_LOG_SEND;
+            return 1;
+        }
+        r = is_active_process.wait();
         if(r != 0)
         {
-            SNAP_LOG_WARNING
-                << "could not delete the \""
-                << g_bind9_need_restart
-                << "\" flag."
+            SNAP_LOG_FATAL
+                << "command \""
+                << is_active_process.get_command_line()
+                << "\" returned an error (exit code "
+                << r
+                << ")."
                 << SNAP_LOG_SEND;
+            return 1;
         }
+    }
+
+    std::string const active(snapdev::trim_string(output->get_output(true)));
+    if(active != "active")
+    {
+        return 0;
+    }
+
+    // stop the DNS server
+    //
+    char const * cmd("systemctl restart opendkim");
+    if(f_verbose)
+    {
+        std::cout
+            << "info: "
+            << cmd
+            << std::endl;
+    }
+    if(!f_dry_run)
+    {
+        r = system(cmd);
+        if(r != 0)
+        {
+            SNAP_LOG_FATAL
+                << "could not restart the opendkim service (systemctl exit value: "
+                << r
+                << ")"
+                << SNAP_LOG_SEND;
+            return r;
+        }
+    }
+
+    // remove the flag telling us that the restart we requested
+    //
+    if(f_verbose)
+    {
+        std::cout
+            << "info: rm -f "
+            << g_opendkim_need_restart
+            << std::endl;
+    }
+    if(!f_dry_run)
+    {
+        // ignore errors on this one
+        //
+        snapdev::NOT_USED(unlink(g_opendkim_need_restart));
+    }
+
+    return 0;
+}
+
+
+int ipmgr::restart_opendmarc()
+{
+    int r(0);
+
+    // restart necessary?
+    //
+    if(access(g_opendmarc_need_restart, F_OK) != 0)
+    {
+        return 0;
+    }
+
+    // we do not want to force a restart if opendmarc is not currently
+    // active (i.e. it may have been stopped by the user for a while)
+    //
+    cppprocess::process is_active_process("opendmarc-is-active?");
+    is_active_process.set_command("systemctl");
+    is_active_process.add_argument("is-active");
+    is_active_process.add_argument("opendmarc");
+
+    cppprocess::io_capture_pipe::pointer_t output(std::make_shared<cppprocess::io_capture_pipe>());
+    is_active_process.set_output_io(output);
+
+    if(f_verbose)
+    {
+        std::cout
+            << "info: "
+            << is_active_process.get_command_line()
+            << std::endl;
+    }
+
+    if(!f_dry_run)
+    {
+        if(is_active_process.start() != 0)
+        {
+            SNAP_LOG_FATAL
+                << "could not start \""
+                << is_active_process.get_command_line()
+                << "\"."
+                << SNAP_LOG_SEND;
+            return 1;
+        }
+        r = is_active_process.wait();
+        if(r != 0)
+        {
+            SNAP_LOG_FATAL
+                << "command \""
+                << is_active_process.get_command_line()
+                << "\" returned an error (exit code "
+                << r
+                << ")."
+                << SNAP_LOG_SEND;
+            return 1;
+        }
+    }
+
+    std::string const active(snapdev::trim_string(output->get_output(true)));
+    if(active != "active")
+    {
+        return 0;
+    }
+
+    // stop the DNS server
+    //
+    char const * cmd("systemctl restart opendmarc");
+    if(f_verbose)
+    {
+        std::cout
+            << "info: "
+            << cmd
+            << std::endl;
+    }
+    if(!f_dry_run)
+    {
+        r = system(cmd);
+        if(r != 0)
+        {
+            SNAP_LOG_FATAL
+                << "could not restart the opendmarc service (systemctl exit value: "
+                << r
+                << ")"
+                << SNAP_LOG_SEND;
+            return r;
+        }
+    }
+
+    // remove the flag telling us that the restart we requested
+    //
+    if(f_verbose)
+    {
+        std::cout
+            << "info: rm -f "
+            << g_opendmarc_need_restart
+            << std::endl;
+    }
+    if(!f_dry_run)
+    {
+        // ignore errors on this one
+        //
+        snapdev::NOT_USED(unlink(g_opendmarc_need_restart));
     }
 
     return 0;
@@ -2673,7 +3321,25 @@ int ipmgr::run()
         return r;
     }
 
+    r = process_opendmarc();
+    if(r != 0)
+    {
+        return r;
+    }
+
     r = restart_bind9();
+    if(r != 0)
+    {
+        return r;
+    }
+
+    r = restart_opendkim();
+    if(r != 0)
+    {
+        return r;
+    }
+
+    r = restart_opendmarc();
     if(r != 0)
     {
         return r;

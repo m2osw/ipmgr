@@ -237,6 +237,8 @@ is documented below.
     ttl=4w
     mail_priority=10
     mail_key=mail.example.com.key
+    key_ttl=30m
+    auth_server=true
 
     [info]
     sub_domains=info
@@ -284,6 +286,22 @@ The priority to use with the `MX` field. This automatically defaults to 10.
 
 The filename with a key to use with the mail service. This is used to sign
 emails so the receiving parties can verify that the origin is valid.
+
+### `key_ttl` (specialized)
+
+The mail section can include a `key_ttl=<duration>` parameter. This is used
+to assign a specific TTL for the `TXT` fields used by SPF, DMARC, DKIM.
+
+The minimum value is 60 (1 minute). The default is 1800 (30 minutes).
+
+### `auth_server` (specialized)
+
+One of your domain can be set as the authoritative mail server. This is done
+by setting this parameter to `true` in the `[mail]` section. The default is
+`false`.
+
+Only one mail server can be authoritative. If you setup more than one, then
+an error ensues at the time we find the second one.
 
 ### `ttl` (global, specialized)
 

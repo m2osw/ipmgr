@@ -90,6 +90,8 @@ public:
         dynamic_t               dynamic() const;
         std::string             generate_zone_file();
         std::uint32_t           get_zone_serial(bool next = false);
+        std::string             get_zone_mail_subdomain() const;
+        bool                    is_auth_server() const;
 
     private:
         bool                    retrieve_group();
@@ -108,6 +110,7 @@ public:
         bool                    retrieve_all_sections();
 
         advgetopt::getopt::pointer_t        f_opt = advgetopt::getopt::pointer_t();
+        bool                                f_dry_run = false;
         bool                                f_verbose = false;
 
         // the order matters; when searching for a parameter, the
@@ -134,8 +137,10 @@ public:
         std::int32_t                        f_mail_priority = -1;
         std::int32_t                        f_mail_ttl = 0;
         std::int32_t                        f_mail_default_ttl = 0;
+        std::int32_t                        f_key_ttl = 0;
         dynamic_t                           f_dynamic = dynamic_t::DYNAMIC_STATIC;
         advgetopt::conf_file::sections_t    f_sections = advgetopt::conf_file::sections_t();
+        bool                                f_auth_server = false;
     };
 
                             ipmgr(int argc, char * argv[]);
@@ -160,10 +165,13 @@ private:
     int                     generate_zone(zone_files::pointer_t & zone);
     int                     save_conf_files();
     int                     process_zones();
+    int                     process_opendmarc();
     int                     bind9_is_active();
     int                     stop_bind9();
     int                     start_bind9();
     int                     restart_bind9();
+    int                     restart_opendkim();
+    int                     restart_opendmarc();
 
     advgetopt::getopt::pointer_t
                             f_opt = advgetopt::getopt::pointer_t();

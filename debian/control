@@ -24,7 +24,13 @@ Vcs-Browser: https://github.com/m2osw/ipmgr
 
 Package: ipmgr
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, bind9
+Depends: bind9,
+ opendkim,
+ opendkim-tools,
+ opendmarc,
+ postfix-policyd-spf-python,
+ ${shlibs:Depends},
+ ${misc:Depends}
 Suggests: ipmgr-doc
 Description: Manager DNS zone files with ease.
  The ipmgr tool is used to add or remove domain name DNS definitions to your

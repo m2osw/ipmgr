@@ -9,6 +9,11 @@
 NAMED_CONF=/etc/bind/named.conf.options
 DNS_OPTIONS=dns-options
 NAMED_LOG_PATH=/var/log/named
+OPENDKIM_CONF=/etc/opendkim.conf
+OPENDKIM_DIR=/etc/opendkim
+OPENDMARC_CONF=/etc/opendmarc.conf
+OPENDMARC_DIR=/etc/opendmarc
+OPENDMARC_DEFAULTS=/etc/default/opendmarc
 
 # Make a backup but only once (in case the .bak already exists, do not
 # do a backup)
@@ -68,5 +73,32 @@ then
     mkdir -p ${NAMED_LOG_PATH}
     chown bind:bind ${NAMED_LOG_PATH}
 fi
+
+# On our old server (16.04) the command line looked like this:
+#
+#    /usr/sbin/opendkim -x /etc/opendkim.conf -u opendkim -P /var/run/opendkim/opendkim.pid -p inet:12345@localhost
+#
+# On newer system, the opendkim.conf can include all of these parameters.
+#
+
+mkdir -p ${OPENDKIM_DIR}
+#edit-config --space ${OPENDKIM_CONF} Syslog yes
+# The default UMask is 007 which I think would be better?
+edit-config --space ${OPENDKIM_CONF} UMask 002
+edit-config --space ${OPENDKIM_CONF} Socket inet:12345@localhost
+#edit-config --space ${OPENDKIM_CONF} PidFile /run/opendkim/opendkim.pid
+#edit-config --space ${OPENDKIM_CONF} OversignHeaders From
+edit-config --space ${OPENDKIM_CONF} KeyTable ${OPENDKIM_DIR}/key_table
+edit-config --space ${OPENDKIM_CONF} SigningTable ${OPENDKIM_DIR}/signing_table
+edit-config --space ${OPENDKIM_CONF} ExternalIgnoreList ${OPENDKIM_DIR}/trusted_hosts
+edit-config --space ${OPENDKIM_CONF} InternalHosts ${OPENDKIM_DIR}/trusted_hosts
+edit-config --space ${OPENDKIM_CONF} AutoRestart yes
+edit-config --space ${OPENDKIM_CONF} AutoRestartRate 10/1h
+#edit-config --space ${OPENDKIM_CONF} Mode sv
+
+edit_config --space ${OPENDMARC_CONF} IgnoreHosts /etc/opendmarc/ignore_hosts
+edit_config --space ${OPENDMARC_CONF} HistoryFile /run/opendmarc/opendmarc.dat
+
+edit_config ${OPENDMARC_DEFAULTS} Socket=inet:54321@localhost
 
 # vim: ts=4 sw=4 et
