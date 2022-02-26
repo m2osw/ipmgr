@@ -275,7 +275,7 @@ as usual.
 
 ### `mail` (global)
 
-The name of the sub-domain to use with the `MX` field. If not defined,
+The name of the section to use for the `MX` field. If not defined,
 then the `mail_priority` and `mail_key` are ignored.
 
 ### `mail_priority` (global)
@@ -289,16 +289,17 @@ emails so the receiving parties can verify that the origin is valid.
 
 ### `key_ttl` (specialized)
 
-The mail section can include a `key_ttl=<duration>` parameter. This is used
-to assign a specific TTL for the `TXT` fields used by SPF, DMARC, DKIM.
+The mail section (i.e. see the `mail` global parameter) can include a
+`key_ttl=<duration>` parameter. This is used to assign a specific TTL
+for the `TXT` fields used by SPF, DMARC, DKIM.
 
 The minimum value is 60 (1 minute). The default is 1800 (30 minutes).
 
 ### `auth_server` (specialized)
 
 One of your domain can be set as the authoritative mail server. This is done
-by setting this parameter to `true` in the `[mail]` section. The default is
-`false`.
+by setting this parameter to `true` in the `mail` section (i.e. the section
+named in the `mail` global parameter). The default is `false`.
 
 Only one mail server can be authoritative. If you setup more than one, then
 an error ensues at the time we find the second one.

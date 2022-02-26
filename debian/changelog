@@ -1,3 +1,10 @@
+ipmgr (1.0.28.0~bionic) bionic; urgency=high
+
+  * Fixed the `edit-config` usage in our dns-setup script.
+  * Fixed some documentation.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 26 Feb 2022 08:49:40 -0800
+
 ipmgr (1.0.27.0~bionic) bionic; urgency=high
 
   * Added support for SPF1.

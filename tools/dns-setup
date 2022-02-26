@@ -8,6 +8,7 @@
 #
 NAMED_CONF=/etc/bind/named.conf.options
 DNS_OPTIONS=dns-options
+EDIT_CONFIG=edit-config
 NAMED_LOG_PATH=/var/log/named
 OPENDKIM_CONF=/etc/opendkim.conf
 OPENDKIM_DIR=/etc/opendkim
@@ -82,23 +83,23 @@ fi
 #
 
 mkdir -p ${OPENDKIM_DIR}
-#edit-config --space ${OPENDKIM_CONF} Syslog yes
+#${EDIT_CONFIG} --space ${OPENDKIM_CONF} Syslog yes
 # The default UMask is 007 which I think would be better?
-edit-config --space ${OPENDKIM_CONF} UMask 002
-edit-config --space ${OPENDKIM_CONF} Socket inet:12345@localhost
-#edit-config --space ${OPENDKIM_CONF} PidFile /run/opendkim/opendkim.pid
-#edit-config --space ${OPENDKIM_CONF} OversignHeaders From
-edit-config --space ${OPENDKIM_CONF} KeyTable ${OPENDKIM_DIR}/key_table
-edit-config --space ${OPENDKIM_CONF} SigningTable ${OPENDKIM_DIR}/signing_table
-edit-config --space ${OPENDKIM_CONF} ExternalIgnoreList ${OPENDKIM_DIR}/trusted_hosts
-edit-config --space ${OPENDKIM_CONF} InternalHosts ${OPENDKIM_DIR}/trusted_hosts
-edit-config --space ${OPENDKIM_CONF} AutoRestart yes
-edit-config --space ${OPENDKIM_CONF} AutoRestartRate 10/1h
-#edit-config --space ${OPENDKIM_CONF} Mode sv
+${EDIT_CONFIG} --space ${OPENDKIM_CONF} UMask 002
+${EDIT_CONFIG} --space ${OPENDKIM_CONF} Socket inet:12345@localhost
+#${EDIT_CONFIG} --space ${OPENDKIM_CONF} PidFile /run/opendkim/opendkim.pid
+#${EDIT_CONFIG} --space ${OPENDKIM_CONF} OversignHeaders From
+${EDIT_CONFIG} --space ${OPENDKIM_CONF} KeyTable ${OPENDKIM_DIR}/key_table
+${EDIT_CONFIG} --space ${OPENDKIM_CONF} SigningTable ${OPENDKIM_DIR}/signing_table
+${EDIT_CONFIG} --space ${OPENDKIM_CONF} ExternalIgnoreList ${OPENDKIM_DIR}/trusted_hosts
+${EDIT_CONFIG} --space ${OPENDKIM_CONF} InternalHosts ${OPENDKIM_DIR}/trusted_hosts
+${EDIT_CONFIG} --space ${OPENDKIM_CONF} AutoRestart yes
+${EDIT_CONFIG} --space ${OPENDKIM_CONF} AutoRestartRate 10/1h
+#${EDIT_CONFIG} --space ${OPENDKIM_CONF} Mode sv
 
-edit_config --space ${OPENDMARC_CONF} IgnoreHosts /etc/opendmarc/ignore_hosts
-edit_config --space ${OPENDMARC_CONF} HistoryFile /run/opendmarc/opendmarc.dat
+${EDIT_CONFIG} --space ${OPENDMARC_CONF} IgnoreHosts /etc/opendmarc/ignore_hosts
+${EDIT_CONFIG} --space ${OPENDMARC_CONF} HistoryFile /run/opendmarc/opendmarc.dat
 
-edit_config ${OPENDMARC_DEFAULTS} Socket=inet:54321@localhost
+${EDIT_CONFIG} ${OPENDMARC_DEFAULTS} Socket=inet:54321@localhost
 
 # vim: ts=4 sw=4 et
