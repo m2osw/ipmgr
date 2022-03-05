@@ -7,6 +7,15 @@
 
 if [ "$1" = "configure" ]
 then
+    # Save the mailname if not already defined
+    #
+    MAILNAME="/etc/mailname"
+    if test ! -f ${MAILNAME} -o ! -s ${MAILNAME}
+    then
+        db_get ipmgr/mailname && domain="$RET"
+        echo ${domain} > ${MAILNAME}
+    fi
+
     # Include our setup file which includes all the zones we generate
     #
     mkdir -p /etc/bind/zones/

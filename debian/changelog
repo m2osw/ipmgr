@@ -1,3 +1,13 @@
+ipmgr (1.0.32.0~bionic) bionic; urgency=high
+
+  * Ask for the main domain name on installation. Useful to PostSRS.
+  * Set the SRS_DOMAIN variable to the /etc/mailname content (main domain name).
+  * Fallback on the serial file if we can't read the SOA.
+  * Added support for a PTR and corresponding TTL.
+  * Added the RUA and RUF for the DMARC TXT field.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Fri, 04 Mar 2022 21:06:11 -0800
+
 ipmgr (1.0.31.0~bionic) bionic; urgency=high
 
   * Also change the Socket parameter in the .conf because it looks like

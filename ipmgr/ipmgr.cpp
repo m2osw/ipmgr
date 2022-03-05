@@ -596,12 +596,18 @@ std::int64_t ipmgr::zone_files::get_zone_duration(
 std::string ipmgr::zone_files::get_zone_email(
           std::string const & name
         , std::string const & default_name
-        , std::string const & default_value) const
+        , std::string const & default_value
+        , bool allow_empty) const
 {
     std::string const value(get_zone_param(
                                       name
                                     , default_name
                                     , default_value));
+    if(allow_empty
+    && value.empty())
+    {
+        return std::string();
+    }
 
     tld_email_list emails;
     if(emails.parse(value, 0) != TLD_RESULT_SUCCESS)
@@ -627,27 +633,9 @@ std::string ipmgr::zone_files::get_zone_email(
         return std::string();
     }
 
-    // replace the '@' with a period
-    // periods before the '@' get escaped with a backslash
-    //
     tld_email_list::tld_email_t e;
     emails.next(e);
-    std::string hostmaster(e.f_canonicalized_email);
-    for(std::size_t idx(0); idx < hostmaster.length(); ++idx)
-    {
-        if(hostmaster[idx] == '.')
-        {
-            hostmaster.insert(idx, 1, '\\');
-            ++idx;
-        }
-        else if(hostmaster[idx] == '@')
-        {
-            hostmaster[idx] = '.';
-            break;
-        }
-    }
-
-    return hostmaster;
+    return e.f_canonicalized_email;
 }
 
 
@@ -672,42 +660,7 @@ std::uint32_t ipmgr::zone_files::get_zone_serial(bool next)
     //
     std::string const path("/var/lib/ipmgr/serial/" + f_domain + ".counter");
 
-    if(f_dynamic == dynamic_t::DYNAMIC_STATIC)
-    {
-        struct stat s = {};
-        if(stat(path.c_str(), &s) != 0
-        || s.st_size != sizeof(uint32_t))
-        {
-            std::ofstream out(path);
-            out.write(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
-            if(!out.good())
-            {
-                SNAP_LOG_ERROR
-                    << "could not create new serial number file \""
-                    << path
-                    << "\" for zone of \""
-                    << f_domain
-                    << "\" domain."
-                    << SNAP_LOG_SEND;
-                return 0;
-            }
-        }
-
-        std::fstream file(path);
-        file.read(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
-        if(!file.good())
-        {
-            SNAP_LOG_ERROR
-                << "could not read serial number to file \""
-                << path
-                << "\" for zone of \""
-                << f_domain
-                << "\" domain."
-                << SNAP_LOG_SEND;
-            return 0;
-        }
-    }
-    else
+    if(f_dynamic != dynamic_t::DYNAMIC_STATIC)
     {
         // this is a dynamic zone and each update to the zone imply an
         // increment to the SOA serial number and so we have to go get
@@ -794,6 +747,46 @@ std::uint32_t ipmgr::zone_files::get_zone_serial(bool next)
         }
     }
 
+    // allow for reading our static serial number if it failed reading
+    // the SOA (maybe the file was deleted or it does not exist yet)
+    //
+    if(f_dynamic == dynamic_t::DYNAMIC_STATIC
+    || serial == 0)
+    {
+        struct stat s = {};
+        if(stat(path.c_str(), &s) != 0
+        || s.st_size != sizeof(uint32_t))
+        {
+            std::ofstream out(path);
+            out.write(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
+            if(!out.good())
+            {
+                SNAP_LOG_ERROR
+                    << "could not create new serial number file \""
+                    << path
+                    << "\" for zone of \""
+                    << f_domain
+                    << "\" domain."
+                    << SNAP_LOG_SEND;
+                return 0;
+            }
+        }
+
+        std::fstream file(path);
+        file.read(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
+        if(!file.good())
+        {
+            SNAP_LOG_ERROR
+                << "could not read serial number to file \""
+                << path
+                << "\" for zone of \""
+                << f_domain
+                << "\" domain."
+                << SNAP_LOG_SEND;
+            return 0;
+        }
+    }
+
     if(serial == 0)
     {
         if(f_dynamic == dynamic_t::DYNAMIC_STATIC)
@@ -861,6 +854,31 @@ bool ipmgr::zone_files::is_auth_server() const
 }
 
 
+std::string ipmgr::zone_files::get_ptr() const
+{
+    return f_ptr;
+}
+
+
+std::string ipmgr::zone_files::get_ptr_arpa() const
+{
+    // TBD: what happens for IPv6?
+    //
+    advgetopt::string_list_t list;
+    advgetopt::split_string(
+          f_ptr
+        , list
+        , {"."});
+    if(list.size() != 4)
+    {
+        SNAP_LOG_ERROR
+            << "right now we only support IPv4 PTRs."
+            << SNAP_LOG_SEND;
+    }
+    return list[2] + '.' + list[1] + '.' + list[0] + ".in-addr.arpa";
+}
+
+
 bool ipmgr::zone_files::retrieve_fields()
 {
     typedef bool (ipmgr::zone_files::*retrieve_func_t)();
@@ -872,6 +890,7 @@ bool ipmgr::zone_files::retrieve_fields()
         &ipmgr::zone_files::retrieve_group,
         &ipmgr::zone_files::retrieve_domain,
         &ipmgr::zone_files::retrieve_ttl,
+        &ipmgr::zone_files::retrieve_ptr,
         &ipmgr::zone_files::retrieve_ips,
         &ipmgr::zone_files::retrieve_nameservers,
         &ipmgr::zone_files::retrieve_hostmaster,
@@ -938,6 +957,45 @@ bool ipmgr::zone_files::retrieve_ttl()
             << "Domain \""
             << f_domain
             << "\" has an invalid TTL definition."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+
+    return true;
+}
+
+
+bool ipmgr::zone_files::retrieve_ptr()
+{
+    f_ptr = get_zone_param("ptr");
+    if(f_ptr.empty())
+    {
+        return true;
+    }
+
+    addr::addr_parser parser;
+    parser.set_allow(addr::allow_t::ALLOW_ADDRESS, true);
+    parser.set_allow(addr::allow_t::ALLOW_REQUIRED_ADDRESS, true);
+    parser.set_allow(addr::allow_t::ALLOW_ADDRESS_LOOKUP, false);
+    parser.set_allow(addr::allow_t::ALLOW_PORT, false);
+    addr::addr_range::vector_t r(parser.parse(f_ptr));
+    addr::addr a(r[0].get_from());
+    if(!a.is_ipv4())
+    {
+        SNAP_LOG_ERROR
+            << "The ptr=... variable is currently limited to IPv4 addresses."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+
+    f_ptr_ttl = get_zone_duration("ptr_ttl", std::string(), "12h");
+
+    if(f_ptr_ttl < 0)
+    {
+        SNAP_LOG_ERROR
+            << "Invalid PTR TTL for \""
+            << f_domain
+            << "\"."
             << SNAP_LOG_SEND;
         return false;
     }
@@ -1047,6 +1105,26 @@ bool ipmgr::zone_files::retrieve_hostmaster()
             << "\" is empty."
             << SNAP_LOG_SEND;
         return false;
+    }
+
+    // replace the '@' with a period
+    // periods before the '@' get escaped with a backslash
+    //
+    for(std::size_t idx(0); idx < f_hostmaster.length(); ++idx)
+    {
+        if(f_hostmaster[idx] == '.')
+        {
+            f_hostmaster.insert(idx, 1, '\\');
+            ++idx;
+        }
+        else if(f_hostmaster[idx] == '@')
+        {
+            f_hostmaster[idx] = '.';
+
+            // and done!
+            //
+            break;
+        }
     }
 
     return true;
@@ -1237,6 +1315,9 @@ bool ipmgr::zone_files::retrieve_mail_fields()
     }
 
     f_auth_server = get_zone_bool(mail_section + "::auth_server", std::string(), "false");
+
+    f_dmarc_rua = get_zone_email(mail_section + "::dmarc_rua", std::string(), std::string(), true);
+    f_dmarc_ruf = get_zone_email(mail_section + "::dmarc_ruf", std::string(), std::string(), true);
 
     return true;
 }
@@ -2018,7 +2099,26 @@ std::string ipmgr::zone_files::generate_zone_file()
         zone_data
             << "_dmarc\t"
             << f_key_ttl
-            << " TXT\t\"v=DMARC1; p=quarantine; fo=0; adkim=r; aspf=r; pct=100; rf=afrf; sp=quarantine\"\n";
+            << " TXT\t\"v=DMARC1; p=quarantine;";
+
+        if(!f_dmarc_rua.empty())
+        {
+            zone_data
+                << " rua:"
+                << f_dmarc_rua
+                << ';';
+        }
+
+        if(!f_dmarc_ruf.empty())
+        {
+            zone_data
+                << " ruf:"
+                << f_dmarc_ruf
+                << ';';
+        }
+
+        zone_data
+            << " fo=0; adkim=r; aspf=r; pct=100; rf=afrf; sp=quarantine\"\n";
     }
 
     for(auto const & d : sorted_subdomains)
@@ -2105,6 +2205,60 @@ std::string ipmgr::zone_files::generate_zone_file()
             return std::string();
         }
     }
+
+    return zone_data.str();
+}
+
+
+std::string ipmgr::zone_files::generate_ptr_file()
+{
+    std::stringstream zone_data;
+
+    // warning
+    zone_data << "; WARNING -- auto-generated file; see `man ipmgr` for details.\n";
+
+    // TTL (global time to live)
+    zone_data << "$TTL " << f_ptr_ttl << "\n";
+
+    // SOA
+    zone_data
+        << "@\tIN SOA "
+        << f_domain
+        << ". "
+        << f_hostmaster
+        << ". ("
+        << f_serial
+        << " "
+        << f_refresh
+        << " "
+        << f_retry
+        << " "
+        << f_expire
+        << " "
+        << f_minimum_cache_failures
+        << ")\n";
+
+    // list of nameservers
+    //
+    for(auto const & ns : f_nameservers)
+    {
+        zone_data << "\tIN NS\t" << ns.first << ".\n";
+    }
+
+    // TODO: add support for IPv6
+    //
+    std::string::size_type const pos(f_ptr.rfind('.'));
+    if(pos == std::string::npos)
+    {
+        SNAP_LOG_FATAL
+            << "no period found in PTR \""
+            << f_ptr
+            << "\" (IPv6 is not yet supported)."
+            << SNAP_LOG_SEND;
+        return std::string();
+    }
+
+    zone_data << f_ptr.substr(pos + 1) << "\tIN PTR\t" << f_domain << ".\n";
 
     return zone_data.str();
 }
@@ -2642,6 +2796,150 @@ int ipmgr::generate_zone(zone_files::pointer_t & zone)
 }
 
 
+int ipmgr::generate_ptr_zone(zone_files::pointer_t & zone)
+{
+    if(f_verbose)
+    {
+        std::cout
+            << "info: generating PTR zone for \""
+            << zone->domain()
+            << "\"."
+            << std::endl;
+    }
+
+    f_includes
+        << "include \"/etc/bind/zones/"
+        << zone->get_ptr()
+        << ".ptr\";\n";
+
+    std::string z(zone->generate_ptr_file());
+    if(z.empty())
+    {
+        // generation failed
+        //
+        return 1;
+    }
+
+// TODO: use a template to generate the zone_conf files (instead of the
+//       dynamic parameter, use a template=... where you can define
+//       the name of the template which gives us the parameters to use
+//       all in one place and especially editable by users and yo'd be
+//       able to create any number of templates)
+
+    // we must insert all the zones in the configuration file, even if we
+    // do not regenerate some of them because they are already up to date
+    //
+    // otherwise the .conf file would be missing those entries and that
+    // would be really bad!
+    //
+    if(f_zone_conf[zone->get_ptr()].str().empty())
+    {
+        // this should not happen here
+        //
+        f_zone_conf[zone->get_ptr()]
+            << "// AUTO-GENERATED FILE, DO NOT EDIT\n"
+            << "// see ipmgr(1) instead\n"
+            << "\n";
+    }
+
+    f_zone_conf[zone->get_ptr()]
+        << "zone \""
+        << zone->get_ptr_arpa()
+        << "\" {\n"
+        << "  type master;\n"
+        << "  file \"/etc/bind/zones/"
+        << zone->get_ptr()
+        << ".ptr\";\n"
+        << "};\n";
+
+    // compare with existing file, if it changed, then we raise a flag
+    // about that
+    //
+    std::string const zone_filename("/var/lib/ipmgr/generated/" + zone->get_ptr() + ".ptr");
+
+    snapdev::file_contents file(zone_filename, true);
+    if(!f_force)
+    {
+        if(file.exists()
+        && file.read_all())
+        {
+            // got existing file contents, did it change?
+            //
+            if(file.contents() == z)
+            {
+                // no changes, we're done here
+                //
+                return 0;
+            }
+        }
+    }
+
+    // the zone changed or is forcibly refreshed so increment the serial number
+    //
+    if(zone->get_zone_serial(true) == 0)
+    {
+        return 1;
+    }
+
+    z = zone->generate_ptr_file();
+    if(z.empty())
+    {
+        // generation failed
+        //
+        return 1;
+    }
+
+    // raise flag that something changed and a restart will be required
+    //
+    // this file goes under /run so we don't take the risk of restarting
+    // again after a reboot
+    //
+    f_bind_restart_required = true;
+    snapdev::file_contents flag(g_bind9_need_restart, true);
+    flag.contents("*** bind9 restart required ***\n");
+    if(!flag.write_all())
+    {
+        SNAP_LOG_MINOR
+            << "could not write to file \""
+            << g_bind9_need_restart
+            << "\": "
+            << flag.last_error()
+            << SNAP_LOG_SEND;
+    }
+
+    // save the new content
+    //
+    file.contents(z);
+    if(!file.write_all())
+    {
+        SNAP_LOG_ERROR
+            << "could not write to file \""
+            << zone_filename
+            << "\": "
+            << file.last_error()
+            << SNAP_LOG_SEND;
+        return 1;
+    }
+
+    std::string const bind_filename("/etc/bind/zones/" + zone->get_ptr() + ".ptr");
+
+    snapdev::file_contents bind(bind_filename, true);
+    bind.contents(z);
+    if(!bind.write_all())
+    {
+        SNAP_LOG_ERROR
+            << "could not write to static file \""
+            << bind_filename
+            << "\": "
+            << bind.last_error()
+            << SNAP_LOG_SEND;
+        return 1;
+    }
+
+    return 0;
+}
+
+
 /** \brief Save the configuration files.
  *
  * Each group of zones is given a configuration file with the bind syntax
@@ -2707,6 +3005,11 @@ int ipmgr::process_zones()
         if(r != 0)
         {
             return r;
+        }
+
+        if(!z.second->get_ptr().empty())
+        {
+            generate_ptr_zone(z.second);
         }
     }
 
@@ -2776,7 +3079,9 @@ int ipmgr::process_opendmarc()
             if(r != 0)
             {
                 SNAP_LOG_ERROR
-                    << "updating the opendmarc configuration file with the list of trusted mail servers failed."
+                    << "updating the opendmarc configuration file with the list of trusted mail servers failed \""
+                    << cmd
+                    << "\"."
                     << SNAP_LOG_SEND;
                 return r;
             }
@@ -2810,7 +3115,9 @@ int ipmgr::process_opendmarc()
             if(r != 0)
             {
                 SNAP_LOG_ERROR
-                    << "updating the opendmarc configuration file with the list of trusted mail servers failed."
+                    << "updating the opendmarc configuration file with the list of trusted mail servers failed: \""
+                    << cmd
+                    << "\"."
                     << SNAP_LOG_SEND;
                 return r;
             }

@@ -81,22 +81,27 @@ public:
                                     , std::string const & default_value = std::string()) const;
         std::string             get_zone_email(
                                       std::string const & name
-                                    , std::string const & default_name
-                                    , std::string const & default_value) const;
+                                    , std::string const & default_name = std::string()
+                                    , std::string const & default_value = std::string()
+                                    , bool allow_empty = false) const;
 
         bool                    retrieve_fields();
         std::string             group() const;
         std::string             domain() const;
         dynamic_t               dynamic() const;
         std::string             generate_zone_file();
+        std::string             generate_ptr_file();
         std::uint32_t           get_zone_serial(bool next = false);
         std::string             get_zone_mail_subdomain() const;
         bool                    is_auth_server() const;
+        std::string             get_ptr() const;
+        std::string             get_ptr_arpa() const;
 
     private:
         bool                    retrieve_group();
         bool                    retrieve_domain();
         bool                    retrieve_ttl();
+        bool                    retrieve_ptr();
         bool                    retrieve_ips();
         bool                    retrieve_nameservers();
         bool                    retrieve_hostmaster();
@@ -137,9 +142,13 @@ public:
         std::int32_t                        f_mail_priority = -1;
         std::int32_t                        f_mail_ttl = 0;
         std::int32_t                        f_mail_default_ttl = 0;
+        std::string                         f_dmarc_rua = std::string();
+        std::string                         f_dmarc_ruf = std::string();
         std::int32_t                        f_key_ttl = 0;
         dynamic_t                           f_dynamic = dynamic_t::DYNAMIC_STATIC;
         advgetopt::conf_file::sections_t    f_sections = advgetopt::conf_file::sections_t();
+        std::string                         f_ptr = std::string();
+        int                                 f_ptr_ttl = 0;
         bool                                f_auth_server = false;
     };
 
@@ -163,6 +172,7 @@ private:
     int                     read_zones();
     int                     prepare_includes();
     int                     generate_zone(zone_files::pointer_t & zone);
+    int                     generate_ptr_zone(zone_files::pointer_t & zone);
     int                     save_conf_files();
     int                     process_zones();
     int                     process_opendmarc();

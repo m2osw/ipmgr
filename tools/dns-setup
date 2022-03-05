@@ -15,6 +15,7 @@ OPENDKIM_DIR=/etc/opendkim
 OPENDMARC_CONF=/etc/opendmarc.conf
 OPENDMARC_DIR=/etc/opendmarc
 OPENDMARC_DEFAULTS=/etc/default/opendmarc
+POSTSRS_DEFAULTS=/etc/default/postsrsd
 
 # Make a backup but only once (in case the .bak already exists, do not
 # do a backup)
@@ -102,5 +103,8 @@ ${EDIT_CONFIG} --space ${OPENDMARC_CONF} IgnoreHosts /etc/opendmarc/ignore_hosts
 ${EDIT_CONFIG} --space ${OPENDMARC_CONF} HistoryFile /run/opendmarc/opendmarc.dat
 
 ${EDIT_CONFIG} ${OPENDMARC_DEFAULTS} SOCKET inet:54321@localhost
+
+MAILNAME=`cat /etc/mailname`
+${EDIT_CONFIG} ${POSTSRS_DEFAULTS} SRS_DOMAIN ${MAILNAME}
 
 # vim: ts=4 sw=4 et

@@ -1,0 +1,19 @@
+
+Template: ipmgr/title
+Type: title
+Description: IP Manager Basic Settings
+
+Template: ipmgr/mailname
+Type: string
+Description: Mail Name
+ The name of your domain (i.e. "example.com"). If you have multiple domain
+ names, use the one that will be controlling the mail system (there can be
+ only one). You most certainly do not want to include a subdomain name. I
+ don't think that would work in many places (i.e. "mail.example.com" is
+ probably wrong).
+
+Template: ipmgr/empty
+Type: error
+Description: This parameter cannot be empty.
+ Please make sure to enter a valid domain name.
+
