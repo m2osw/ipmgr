@@ -1,3 +1,9 @@
+ipmgr (1.0.33.0~bionic) bionic; urgency=high
+
+  * Added the Environment Variable Into.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 05 Mar 2022 21:22:33 -0800
+
 ipmgr (1.0.32.0~bionic) bionic; urgency=high
 
   * Ask for the main domain name on installation. Useful to PostSRS.

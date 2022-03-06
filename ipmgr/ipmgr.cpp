@@ -308,6 +308,7 @@ advgetopt::options_environment const g_iplock_options_environment =
     .f_options = g_ipmgr_options,
     .f_options_files_directory = nullptr,
     .f_environment_variable_name = "IPMGR_OPTIONS",
+    .f_environment_variable_intro = nullptr,
     .f_section_variables_name = "variables",
     .f_configuration_files = nullptr,
     .f_configuration_filename = "ipmgr.conf",
