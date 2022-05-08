@@ -63,6 +63,23 @@ then
         echo "warning: ipmgr failed, please make sure all the zone definitions are valid"
         echo "         and that bind is up and running."
     fi
+
+    exit 0
+fi
+
+if [ "$1" = "triggered" ]
+then
+    if [ "$2" = "/usr/share/ipmgr/zones" ]
+    then
+        # testing with a 'touch' to see whether it works with sub-folders.
+        touch /var/lib/ipmgr/triggered
+        if ! ipmgr --force
+        then
+            echo "warning: ipmgr failed, please make sure bind is up and running."
+        fi
+    fi
+
+    exit 0
 fi
 
 # vim: ts=4 sw=4 et nocindent
