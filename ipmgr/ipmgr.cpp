@@ -106,15 +106,19 @@ namespace
 {
 
 
-char const * const g_zone_directories_separator[] =
+constexpr char const * const g_zone_directories_separator[] =
 {
     " ",
+
+    nullptr
 };
 
 
-char const * const g_ip_separator[] =
+constexpr char const * const g_ip_separator[] =
 {
     " ",
+
+    nullptr
 };
 
 
