@@ -1494,7 +1494,7 @@ std::string ipmgr::zone_files::generate_zone_file()
         {
             zone_data << "\tAAAA";
         }
-        zone_data << '\t' << a.to_ipv4or6_string(addr::addr::string_ip_t::STRING_IP_ONLY) << '\n';
+        zone_data << '\t' << a.to_ipv4or6_string(addr::string_ip_t::STRING_IP_ONLY) << '\n';
     }
 
     // we want all the subdomains sorted so we use this intermediate
@@ -1685,7 +1685,7 @@ std::string ipmgr::zone_files::generate_zone_file()
                         parser.set_allow(addr::allow_t::ALLOW_PORT, false);
                         addr::addr_range::vector_t r(parser.parse(ip));
                         addr::addr a(r[0].get_from());
-                        std::string const address(a.to_ipv4or6_string(addr::addr::string_ip_t::STRING_IP_ONLY));
+                        std::string const address(a.to_ipv4or6_string(addr::string_ip_t::STRING_IP_ONLY));
 
                         auto it(f_nameservers.find(d + '.' + f_domain));
                         if(it != f_nameservers.end())
