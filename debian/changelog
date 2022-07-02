@@ -1,3 +1,9 @@
+ipmgr (1.0.35.0~bionic) bionic; urgency=high
+
+  * Added trigger of interest path (i.e. `/usr/share/ipmgr/zones`).
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 02 Jul 2022 11:05:54 -0700
+
 ipmgr (1.0.34.0~bionic) bionic; urgency=high
 
   * Added support to trigger a restart instead of restarting on each package.
