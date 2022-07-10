@@ -7,7 +7,8 @@ would be found here as:
     /etc/ipmgr/ipmgr.d/50-ipmgr.conf
 
 This allows for changes to the default .conf file to happen under the hood
-and your changes to remain in place at all time.
+and your changes to remain in place at all time, even after an update of
+the ipmgr package.
 
 **Note:** it is prefered that you use 50-... because other tools and
 libraries may add their own configuration files that they want applied
