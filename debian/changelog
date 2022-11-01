@@ -1,3 +1,9 @@
+ipmgr (1.0.35.2~bionic) bionic; urgency=high
+
+  * Fixed up a man page.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Mon, 31 Oct 2022 14:32:52 -0700
+
 ipmgr (1.0.35.1~bionic) bionic; urgency=high
 
   * Rebuild with newer libaddr version.
