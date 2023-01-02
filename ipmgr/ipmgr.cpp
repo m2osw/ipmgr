@@ -3340,7 +3340,7 @@ int ipmgr::restart_bind9()
 
     // clear the journals
     //
-    char const * clear_journals("rm -f /var/lib/bind9/*.jnl");
+    char const * clear_journals("rm -f /var/lib/bind/*.jnl");
     if(f_verbose)
     {
         std::cout
