@@ -136,7 +136,7 @@ check out the https://www.gnu.org/licenses/ web page.
 I created the Logo using a
 [font created by Film Himmel - Jens R. Ziehn](https://www.1001freefonts.com/28-days-later.font).
 
-It is limited to uppercase A to Z and roman digits 0 to 9.
+It is limited to uppercase A to Z and arabic digits 0 to 9.
 
 
 # Bugs
