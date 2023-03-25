@@ -2217,10 +2217,21 @@ std::string ipmgr::zone_files::generate_zone_file()
 
 std::string ipmgr::zone_files::generate_ptr_file()
 {
+    // at the moment, I think this should not happen, but I'd have to test
+    // to make 100% sure
+    //
+    if(f_nameservers.empty())
+    {
+        return std::string();
+    }
+
     std::stringstream zone_data;
 
     // warning
-    zone_data << "; WARNING -- auto-generated file; see `man ipmgr` for details.\n";
+    zone_data
+        << "; WARNING -- auto-generated file; see `man ipmgr` for details.\n"
+        << "; NOTE: it is very unlikely that this will be useful since in most\n"
+        << ";       most likelihood your IP provider is in control of the PTR.\n"
 
     // TTL (global time to live)
     zone_data << "$TTL " << f_ptr_ttl << "\n";
@@ -2228,7 +2239,7 @@ std::string ipmgr::zone_files::generate_ptr_file()
     // SOA
     zone_data
         << "@\tIN SOA "
-        << f_domain
+        << f_nameservers.begin()->first
         << ". "
         << f_hostmaster
         << ". ("
