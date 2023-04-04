@@ -2231,7 +2231,7 @@ std::string ipmgr::zone_files::generate_ptr_file()
     zone_data
         << "; WARNING -- auto-generated file; see `man ipmgr` for details.\n"
         << "; NOTE: it is very unlikely that this will be useful since in most\n"
-        << ";       most likelihood your IP provider is in control of the PTR.\n"
+        << ";       most likelihood your IP provider is in control of the PTR.\n";
 
     // TTL (global time to live)
     zone_data << "$TTL " << f_ptr_ttl << "\n";
