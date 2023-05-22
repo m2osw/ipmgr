@@ -10,6 +10,34 @@ The IP Manager (`ipmgr`) is a tool used to manage domain name definitions
 in the BIND9 DNS system.
 
 
+# Testing Zone Transfers
+
+The primary is expected to send its zones to the secondaries. This generally
+works well, but once in a while a BIND9 server may stop sending the data
+for all sorts of reasons. To manually test that a zone transfer works,
+use dig like so:
+
+    $ ssh my.secondary.server
+    $ dig AXFR @primary.server one.of.my.domains
+
+The dig command will show the transferred zone results or an error message
+such as:
+
+    $ dig axfr @ns1.m2osw.com best-gamblers.games
+
+    ; <<>> DiG 9.18.12-0ubuntu0.22.04.1-Ubuntu <<>> axfr @ns1.m2osw.com best-gamblers.games
+    ; (1 server found)
+    ;; global options: +cmd
+    ; Transfer failed.
+
+The transfer clearly fails in this case. Unfortunately, we do not get much
+information about why it failed such as:
+
+* Primary BIND does not want to transfer (transfer was forbidden, somehow).
+* Primary sends data without the AA flag (non-authoritative).
+* Your firewall is in the way (TCP port 53 must be open on primary).
+* Your Internet service provider tempers with your packets.
+
 # Dynamic IPs with BIND9 Breaks
 
 I've experience breakage with BIND9 when sending it too many updates in a row.
