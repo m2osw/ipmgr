@@ -1,4 +1,21 @@
 
+# Possible Bugs
+
+* I added an entry for our DNS2 and it looks like it viewed it as a subdomain
+  name.
+
+      [ns2]
+      subdomains=ns2
+      ips=1.2.3.4
+
+  Got this error:
+
+  > 2023/06/03 20:00:12 do20 ipmgr[432802]: error: each nameserver subdomain
+  > must have a unique IP address, found x.x.x.x twice, check subdomain
+  > "ns2.m2osw.com". (in function "generate_zone_file()") (ipmgr.cpp:1713)
+
+  when I renamed the section as `[dns2]`, it worked.
+
 # Missing Features
 
 * Fix the serial number issue; if a zone gets updated dynamically (say by
