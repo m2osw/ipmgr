@@ -1,4 +1,4 @@
-ipmgr (1.0.36.0~bionic) bionic; urgency=high
+ipmgr (1.0.36.0~jammy) jammy; urgency=high
 
   * Fixed path to bind journals (/var/lib/bind/*.jnl, no "9").
 

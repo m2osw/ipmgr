@@ -3,20 +3,20 @@ Section: net
 Priority: optional
 Maintainer: Alexis Wilke <alexis@m2osw.com>
 Build-Depends: cmake,
-    cppprocess-dev (>= 1.1.40.0~bionic),
-    cppthread-dev (>= 1.1.10.0~bionic),
+    cppprocess-dev (>= 1.1.40.0~jammy),
+    cppthread-dev (>= 1.1.10.0~jammy),
     debhelper,
     doxygen,
-    eventdispatcher-dev (>= 1.1.37.0~bionic),
+    eventdispatcher-dev (>= 1.1.37.0~jammy),
     graphviz,
-    libaddr-dev (>= 1.0.31.1~bionic),
-    libadvgetopt-dev (>= 2.0.24.0~bionic),
+    libaddr-dev (>= 1.0.31.1~jammy),
+    libadvgetopt-dev (>= 2.0.24.0~jammy),
     libboost-dev,
-    libexcept-dev (>= 1.1.10.0~bionic),
-    libtld-dev (>= 2.0.6.1~bionic),
-    snapcmakemodules (>= 1.0.61.0~bionic),
-    snapdev (>= 1.1.18.0~bionic),
-    snaplogger-dev (>= 1.0.39.0~bionic)
+    libexcept-dev (>= 1.1.10.0~jammy),
+    libtld-dev (>= 2.0.6.1~jammy),
+    snapcmakemodules (>= 1.0.61.0~jammy),
+    snapdev (>= 1.1.18.0~jammy),
+    snaplogger-dev (>= 1.0.39.0~jammy)
 Standards-Version: 3.9.4
 Homepage: https://snapwebsites.org/project/ipmgr
 Vcs-Git: https://github.com/m2osw/snapcpp.git
