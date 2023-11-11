@@ -1,6 +1,10 @@
 ipmgr (1.0.36.0~jammy) jammy; urgency=high
 
   * Fixed path to bind journals (/var/lib/bind/*.jnl, no "9").
+  * Install the logo as expected.
+  * Added test to check that the transfer happens.
+  * Fixed the PTR file, although so far I never had a use for that file.
+  * Updated compat to 15.
 
  -- Alexis Wilke <alexis@m2osw.com>  Mon, 02 Jan 2023 09:37:40 -0800
 
