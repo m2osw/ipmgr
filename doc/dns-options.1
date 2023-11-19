@@ -179,24 +179,6 @@ to a new file.
 \fB\-V\fR, \fB\-\-version\fR
 print version number, then exit
 
-.SH "ZONE DIRECTORIES"
-.PP
-By default, the zone directories are set to the following three directories:
-.TP
-/usr/share/ipmgr/zones
-A directory where other projects are expected to drop zone files.
-.TP
-/etc/ipmgr/zones
-The directory where the system administrator is expected to add zone files.
-.TP
-/var/lib/ipmgr/zones
-A directory where dynamically created zones are expected to be installed.
-.PP
-.BR Note:
-Zone directories are read in the order specified. This can be
-important if you want a file to make changes, it is possible to do so in a
-later directory. All the files are read before they get processed.
-
 .SH AUTHOR
 Written by Alexis Wilke <alexis@m2osw.com>.
 .SH "REPORTING BUGS"
