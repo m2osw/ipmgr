@@ -4,7 +4,7 @@ usr/bin/dns-setup
 usr/share/man
 conf/ipmgr.conf                                 etc/ipmgr/
 conf/README.md                                  etc/ipmgr/ipmgr.d/
-conf/README-ipmgr.md                            etc/bind9/zones/
+conf/README-ipmgr.md                            etc/bind/zones/
 conf/README-zones.md                            etc/ipmgr/zones/
 conf/README-static-zones.md                     usr/share/ipmgr/zones/
 conf/logger/ipmgr.conf                          etc/ipmgr/logger/
