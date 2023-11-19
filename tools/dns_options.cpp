@@ -88,7 +88,7 @@ advgetopt::option const g_options[] =
           advgetopt::Name("--")
         , advgetopt::Flags(advgetopt::command_flags<
               advgetopt::GETOPT_FLAG_DEFAULT_OPTION>())
-        , advgetopt::Help("print result in stdout instead of overwriting the input file")
+        , advgetopt::Help("name of input file")
     ),
     advgetopt::end_options()
 };
@@ -112,8 +112,9 @@ advgetopt::options_environment const g_options_environment =
     .f_configuration_directories = nullptr,
     .f_environment_flags = advgetopt::GETOPT_ENVIRONMENT_FLAG_PROCESS_SYSTEM_PARAMETERS,
     .f_help_header = "Usage: %p [-<opt>] ...\n"
+                     "Tool used to edit named.conf files using scripts.\n"
                      "where -<opt> is one or more of:",
-    .f_help_footer = "%c",
+    .f_help_footer = "%c\nUse `man dns-options` for additional information.",
     .f_version = IPMGR_VERSION_STRING,
     .f_license = "This software is licenced under the GPL v3",
     .f_copyright = "Copyright (c) 2013-"
@@ -729,7 +730,7 @@ int dns_options::run()
 
     // then execute the command
     //
-    match();
+    r = match();
 
     // done
     //

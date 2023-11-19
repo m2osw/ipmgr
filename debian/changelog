@@ -1,3 +1,9 @@
+ipmgr (1.0.38.0~jammy) jammy; urgency=high
+
+  * Enhance documentation of dns-options.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sun, 19 Nov 2023 11:04:25 -0800
+
 ipmgr (1.0.37.0~jammy) jammy; urgency=high
 
   * Fixed path to /etc/bind for zones README file.
