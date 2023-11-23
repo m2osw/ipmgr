@@ -801,7 +801,7 @@ std::uint32_t ipmgr::zone_files::get_zone_serial(bool next)
                 if(f_dynamic == dynamic_t::DYNAMIC_STATIC)
                 {
                     SNAP_LOG_ERROR
-                        << "Serial for \""
+                        << "serial for \""
                         << f_domain
                         << "\" could not be read from our serial counter file."
                         << SNAP_LOG_SEND;
@@ -809,7 +809,7 @@ std::uint32_t ipmgr::zone_files::get_zone_serial(bool next)
                 else
                 {
                     SNAP_LOG_ERROR
-                        << "Serial for \""
+                        << "serial for \""
                         << f_domain
                         << "\" could not be read from the zone SOA."
                         << SNAP_LOG_SEND;
@@ -827,9 +827,9 @@ std::uint32_t ipmgr::zone_files::get_zone_serial(bool next)
             serial = 1;
         }
 
-        std::fstream file(path);
-        file.write(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
-        if(!file.good())
+        std::ofstream out(path);
+        out.write(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
+        if(!out.good())
         {
             SNAP_LOG_ERROR
                 << "could not write serial number to file \""
