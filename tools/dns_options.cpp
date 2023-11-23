@@ -1138,7 +1138,7 @@ dns_options::token dns_options::get_token(bool extensions)
                     return result;
                 }
                 ungetc(c);
-                c = '+';
+                c = '?';
             }
             goto read_token;
 
@@ -1386,7 +1386,7 @@ int dns_options::parse_command_line()
     case token_type_t::TOKEN_ASSIGN:
     case token_type_t::TOKEN_UPDATE:
     case token_type_t::TOKEN_CREATE:
-        // here we have a SET, CREATE, UPDATE or a REMOVE depeneding on
+        // here we have a SET, CREATE, UPDATE or a REMOVE depending on
         // the assignment token and the value; the assignment operator
         // is called the command which by default is set to GET
         //

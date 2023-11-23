@@ -277,6 +277,7 @@ CATCH_TEST_CASE("dns_options", "[options]")
 
         for(auto tf : glob)
         {
+            std::cout << "--- working on \"" << tf << "\"...\n";
             test_data data(tf);
             data.create_input(input_filename);
             data.execute_command(input_filename);
