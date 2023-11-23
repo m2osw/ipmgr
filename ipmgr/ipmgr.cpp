@@ -644,11 +644,35 @@ std::string ipmgr::zone_files::get_zone_email(
 }
 
 
+/** \brief Retrieve the serial number of a zone.
+ *
+ * This function retrieves the serial number of a zone. If the zone is
+ * dynamic, it reads the serial number from the SOA definition. This is
+ * important since another tool may increase that number under our feet
+ * (i.e. letsencrypt). For static zones, it reads the serial number from
+ * a counter file.
+ *
+ * The counter files are saved under:
+ *
+ * \code
+ *     /var/lib/ipmgr/serial/\<domain-name>.counter
+ * \endcode
+ *
+ * Note that even when dynamic zones are used, a counter file is created.
+ * This file is used in case the zone somehow disappears.
+ *
+ * \todo
+ * Avoid hard coded path to serial counters and zone files to read the SOA.
+ *
+ * \param[in] next  Retrieve the next counter (i.e. if the current counter
+ * is 5, then the function returns 6).
+ *
+ * \return The current or next serial number for this zone, or zero if the
+ * retrieval failed.
+ */
 std::uint32_t ipmgr::zone_files::get_zone_serial(bool next)
 {
-    // reset to default
-    //
-    std::uint32_t serial(1);
+    std::uint32_t serial(0);
 
 #ifdef _DEBUG
     // the domain must be retrieved before the nameservers
@@ -762,22 +786,25 @@ std::uint32_t ipmgr::zone_files::get_zone_serial(bool next)
         if(stat(path.c_str(), &s) != 0
         || s.st_size != sizeof(uint32_t))
         {
-            if(serial == 0)
+            if(!next)
             {
-                serial = 1;
-            }
-            std::ofstream out(path);
-            out.write(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
-            if(!out.good())
-            {
-                SNAP_LOG_ERROR
-                    << "could not create new serial number file \""
-                    << path
-                    << "\" for zone of \""
-                    << f_domain
-                    << "\" domain."
-                    << SNAP_LOG_SEND;
-                return 0;
+                if(serial == 0)
+                {
+                    serial = 1;
+                }
+                std::ofstream out(path);
+                out.write(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
+                if(!out.good())
+                {
+                    SNAP_LOG_ERROR
+                        << "could not create new serial number file \""
+                        << path
+                        << "\" for zone of \""
+                        << f_domain
+                        << "\" domain."
+                        << SNAP_LOG_SEND;
+                    return 0;
+                }
             }
         }
         else
@@ -800,7 +827,7 @@ std::uint32_t ipmgr::zone_files::get_zone_serial(bool next)
             {
                 if(f_dynamic == dynamic_t::DYNAMIC_STATIC)
                 {
-                    SNAP_LOG_ERROR
+                    SNAP_LOG_RECOVERABLE_ERROR
                         << "serial for \""
                         << f_domain
                         << "\" could not be read from our serial counter file."
@@ -808,13 +835,16 @@ std::uint32_t ipmgr::zone_files::get_zone_serial(bool next)
                 }
                 else
                 {
-                    SNAP_LOG_ERROR
+                    SNAP_LOG_RECOVERABLE_ERROR
                         << "serial for \""
                         << f_domain
                         << "\" could not be read from the zone SOA."
                         << SNAP_LOG_SEND;
                 }
-                return 0;
+                if(!next)
+                {
+                    serial = 1;
+                }
             }
         }
     }

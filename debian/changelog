@@ -1,9 +1,12 @@
 ipmgr (1.0.40.0~jammy) jammy; urgency=high
 
+  * If somehow the serial counter file has serial == 0, use 1 instead.
+  * Avoid counting twice on creation of a new zone.
   * Fine tune error message.
+  * Allow for auto-recovery when the counter has 0 as the serial number.
   * Renamed a variable and use a more specific type.
 
- -- Alexis Wilke <alexis@m2osw.com>  Wed, 22 Nov 2023 20:32:52 -0800
+ -- Alexis Wilke <alexis@m2osw.com>  Thu, 23 Nov 2023 07:03:02 -0800
 
 ipmgr (1.0.39.0~jammy) jammy; urgency=high
 
