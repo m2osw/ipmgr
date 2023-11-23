@@ -39,6 +39,7 @@ enable_language(CXX)
 # Sub-directories
 add_subdirectory(ipmgr)
 add_subdirectory(tools)
+add_subdirectory(tests)
 add_subdirectory(doc)
 
 
