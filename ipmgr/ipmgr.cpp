@@ -762,6 +762,10 @@ std::uint32_t ipmgr::zone_files::get_zone_serial(bool next)
         if(stat(path.c_str(), &s) != 0
         || s.st_size != sizeof(uint32_t))
         {
+            if(serial == 0)
+            {
+                serial = 1;
+            }
             std::ofstream out(path);
             out.write(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
             if(!out.good())
@@ -776,41 +780,43 @@ std::uint32_t ipmgr::zone_files::get_zone_serial(bool next)
                 return 0;
             }
         }
-
-        std::fstream file(path);
-        file.read(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
-        if(!file.good())
-        {
-            SNAP_LOG_ERROR
-                << "could not read serial number to file \""
-                << path
-                << "\" for zone of \""
-                << f_domain
-                << "\" domain."
-                << SNAP_LOG_SEND;
-            return 0;
-        }
-    }
-
-    if(serial == 0)
-    {
-        if(f_dynamic == dynamic_t::DYNAMIC_STATIC)
-        {
-            SNAP_LOG_ERROR
-                << "Serial for \""
-                << f_domain
-                << "\" could not be read from our serial counter file."
-                << SNAP_LOG_SEND;
-        }
         else
         {
-            SNAP_LOG_ERROR
-                << "Serial for \""
-                << f_domain
-                << "\" could not be read from the zone SOA."
-                << SNAP_LOG_SEND;
+            std::ifstream in(path);
+            in.read(reinterpret_cast<char *>(&serial), sizeof(std::uint32_t));
+            if(!in.good())
+            {
+                SNAP_LOG_ERROR
+                    << "could not read serial number from file \""
+                    << path
+                    << "\" for zone of \""
+                    << f_domain
+                    << "\" static domain."
+                    << SNAP_LOG_SEND;
+                return 0;
+            }
+
+            if(serial == 0)
+            {
+                if(f_dynamic == dynamic_t::DYNAMIC_STATIC)
+                {
+                    SNAP_LOG_ERROR
+                        << "Serial for \""
+                        << f_domain
+                        << "\" could not be read from our serial counter file."
+                        << SNAP_LOG_SEND;
+                }
+                else
+                {
+                    SNAP_LOG_ERROR
+                        << "Serial for \""
+                        << f_domain
+                        << "\" could not be read from the zone SOA."
+                        << SNAP_LOG_SEND;
+                }
+                return 0;
+            }
         }
-        return 0;
     }
 
     if(next)
