@@ -1,6 +1,6 @@
 ipmgr (1.0.41.0~jammy) jammy; urgency=high
 
-  * Added a test to verify the dns-options command line.
+  * Added tests to verify the dns-options command line tool.
 
  -- Alexis Wilke <alexis@m2osw.com>  Thu, 23 Nov 2023 09:55:25 -0800
 
