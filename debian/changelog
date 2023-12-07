@@ -1,12 +1,7 @@
-ipmgr (1.0.42.0~jammy) jammy; urgency=high
-
-  * Fixed the obsolete db_title with db_settitle.
-
- -- Alexis Wilke <alexis@m2osw.com>  Wed, 06 Dec 2023 21:48:33 -0800
-
 ipmgr (1.0.41.0~jammy) jammy; urgency=high
 
   * Added tests to verify the dns-options command line tool.
+  * Fixed the obsolete db_title with db_settitle.
 
  -- Alexis Wilke <alexis@m2osw.com>  Thu, 23 Nov 2023 09:55:25 -0800
 
