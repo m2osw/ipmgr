@@ -1602,7 +1602,7 @@ std::string ipmgr::zone_files::generate_zone_file()
             if(subdomain_txt.empty())
             {
                 SNAP_LOG_ERROR
-                    << "a subdomain global section must have one  txt=... entry."
+                    << "a subdomain global section must have one  txt=... entry. To enter multiple TXT entries, use +++ delimited by spaces to separate each one as in: txt=one +++ two."
                     << SNAP_LOG_SEND;
                 return std::string();
             }

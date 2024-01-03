@@ -202,6 +202,31 @@ TLDs you need two different files to properly define each domain:
     /etc/ipmgr/zones/example.net.conf
     /etc/ipmgr/zones/example.org.conf
 
+### Special Sections
+
+The configuration files support a few special sections.
+
+The `[variables]` can be used to define named values that you can then reuse
+throughout your configuration files. See the documentation above for more
+details.
+
+A section that starts with "global-" such as `[global-txt-fields]` can be
+used to manually defined a `TXT` field without a sub-domain name. This is
+useful for special verification of your domain name (sp1, google, etc.)
+
+    [global-txt-field]
+    txt=google-site-verification=123
+    ttl=30m
+
+Note: You can only have one txt=... field in a section. To insert multiple
+TXT field within one section, you can separate each field with the " +++ "
+separator (including the spaces, but not the quotes). For example:
+
+    [global-section]
+    txt=first=field +++ second=field +++ third=field
+
+defines three separate `TXT` fields: `first`, `second`, and `third`.
+
 ### Quick Review of Available Parameters
 
 Here is an example file for a domain named `example.com`. Each variable

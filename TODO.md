@@ -21,8 +21,15 @@
 * Handle the multiple default entries for IPs and nameservers (we only take
   the first string at the moment).
 
-* Fix bug: ipmgr does not detect dynamic/not dynamic change to a zone.
-  (For now you can use --force to make sure you get the changes applied.)
+* The ipmgr tool will stop the bind9 service while doing updates and then
+  restart it. If the restart fails, the service remains inactive. If later
+  on you apply a fix, ipmgr does not detect bind9 as active so it does
+  nothing on that end, leaving the service inactive. I'm thinking that we
+  may want to have a flag as in a file somewhere that tells us the status
+  (i.e. tells ipmgr that it is the one that stopped bind9 in the first
+  place and thus it has to restart it on further changes).
+
+  We shall use the raise-flag feature found in the communicator.
 
 # Missing Features
 
