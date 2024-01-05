@@ -1,3 +1,9 @@
+ipmgr (1.0.44.0~jammy) jammy; urgency=high
+
+  * Fix spelling of loging.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Fri, 05 Jan 2024 09:58:37 -0800
+
 ipmgr (1.0.43.0~jammy) jammy; urgency=high
 
   * Added setup for regular logging file.
