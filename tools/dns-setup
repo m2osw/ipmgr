@@ -58,6 +58,14 @@ ${DNS_OPTIONS} -e 'options.allow-transfer._ = trusted-servers;' ${NAMED_CONF}
 # No need for the "allow-new-zones", we create those
 #${DNS_OPTIONS} -e 'options.allow-new-zones._ = true;' ${NAMED_CONF}
 
+# Define a default category for the logs
+#
+${DNS_OPTIONS} -e 'loggin.category[default]._ = logs'                   ${NAMED_CONF}
+${DNS_OPTIONS} -e 'logging.channel[security_file].severity = debug'     ${NAMED_CONF}
+${DNS_OPTIONS} -e 'logging.channel[security_file].print-category = yes' ${NAMED_CONF}
+${DNS_OPTIONS} -e 'logging.channel[security_file].print-severity = yes' ${NAMED_CONF}
+${DNS_OPTIONS} -e 'logging.channel[security_file].print-time = yes'     ${NAMED_CONF}
+
 # Define a security log file
 # (See SNAP-483)
 #
