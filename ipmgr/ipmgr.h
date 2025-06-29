@@ -25,13 +25,13 @@
  */
 
 
-// advgetopt lib
+// advgetopt
 //
 #include    <advgetopt/advgetopt.h>
 #include    <advgetopt/conf_file.h>
 
 
-// C++ lib
+// C++
 //
 #include    <sstream>
 

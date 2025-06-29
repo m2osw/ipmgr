@@ -48,35 +48,35 @@
 #include    "version.h"
 
 
-// advgetopt lib
+// advgetopt
 //
 #include    <advgetopt/validator_duration.h>
 #include    <advgetopt/validator_integer.h>
 
 
-// libaddr lib
+// libaddr
 //
 #include    <libaddr/addr_parser.h>
 
 
-// libtld lib
+// libtld
 //
 #include    <libtld/tld.h>
 
 
-// cppprocess lib
+// cppprocess
 //
 #include    <cppprocess/io_capture_pipe.h>
 #include    <cppprocess/process.h>
 
 
-// snaplogger lib
+// snaplogger
 //
 #include    <snaplogger/message.h>
 #include    <snaplogger/options.h>
 
 
-// snapdev lib
+// snapdev
 //
 #include    <snapdev/chownnm.h>
 #include    <snapdev/pathinfo.h>
@@ -84,19 +84,19 @@
 #include    <snapdev/trim_string.h>
 
 
-// boost lib
+// boost
 //
 #include    <boost/preprocessor/stringize.hpp>
 
 
-// C++ lib
+// C++
 //
 #include    <iostream>
 #include    <fstream>
 #include    <set>
 
 
-// snapdev lib
+// snapdev
 //
 #include    <snapdev/poison.h>
 

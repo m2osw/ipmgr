@@ -37,17 +37,17 @@
 #include    <advgetopt/exception.h>
 
 
-// eventdispatcher library
+// eventdispatcher
 //
 #include    <eventdispatcher/signal_handler.h>
 
 
-// C++ lib
+// C++
 //
 #include    <iostream>
 
 
-// snapdev lib
+// snapdev
 //
 #include    <snapdev/poison.h>
 
