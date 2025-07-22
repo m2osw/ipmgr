@@ -1,4 +1,4 @@
-ipmgr (1.0.46.0~noble) jammy; urgency=high
+ipmgr (1.0.46.0~noble) noble; urgency=high
 
   * Changed `security_file` to `logs` in dns-setup script.
   * Moved debian/compat version to debian/control dependencies.
