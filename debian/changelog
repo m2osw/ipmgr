@@ -1,3 +1,10 @@
+ipmgr (1.0.46.0~noble) jammy; urgency=high
+
+  * Changed `security_file` to `logs` in dns-setup script.
+  * Moved debian/compat version to debian/control dependencies.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Mon, 21 Jul 2025 18:52:12 -0700
+
 ipmgr (1.0.45.0~jammy) jammy; urgency=high
 
   * Use correct sub-index for "logs".
