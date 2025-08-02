@@ -20,7 +20,7 @@
 
 /** \mainpage
  *
- * \image html ipmgr-logo.jpg
+ * \image html ipmgr-logo.png
  *
  * The ipmgr tool is used to generate DNS zone files dynamically and with
  * simple definitions to start with.
