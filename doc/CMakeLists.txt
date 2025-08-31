@@ -23,12 +23,12 @@
 ##
 project(ipmgr-documentation)
 
-find_package(SnapDoxygen QUIET)
-AddDoxygenTarget(ipmgr
+find_package(SnapDoxygen)
+AddDoxygenTarget(
+    ipmgr
     ${IPMGR_VERSION_MAJOR}
     ${IPMGR_VERSION_MINOR}
     ${IPMGR_VERSION_PATCH}
-    QUIET
 )
 
 install(
