@@ -18,15 +18,6 @@
 //
 
 
-/** \mainpage
- *
- * \image html ipmgr-logo.png
- *
- * The ipmgr tool is used to generate DNS zone files dynamically and with
- * simple definitions to start with.
- */
-
-
 // self
 //
 #include    "ipmgr.h"
@@ -50,6 +41,15 @@
 // snapdev
 //
 #include    <snapdev/poison.h>
+
+
+/** \mainpage
+ *
+ * \image html ipmgr-logo.png "IP Manager Logo" width=5cm
+ *
+ * The ipmgr tool is used to generate DNS zone files dynamically and with
+ * simple definitions (compared to a zone file, at least).
+ */
 
 
 
