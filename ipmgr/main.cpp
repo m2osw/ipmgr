@@ -45,7 +45,7 @@
 
 /** \mainpage
  *
- * \image html ipmgr-logo.png "IP Manager Logo" width=5cm
+ * \image html ipmgr-logo.png "IP Manager Logo" width=250
  *
  * The ipmgr tool is used to generate DNS zone files dynamically and with
  * simple definitions (compared to a zone file, at least).
