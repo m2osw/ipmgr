@@ -33,11 +33,7 @@
 //
 #include    <snapdev/file_contents.h>
 #include    <snapdev/not_reached.h>
-
-
-// boost
-//
-#include    <boost/preprocessor/stringize.hpp>
+#include    <snapdev/stringize.h>
 
 
 // C++
@@ -116,9 +112,9 @@ advgetopt::options_environment const g_options_environment =
                      "where -<opt> is one or more of:",
     .f_help_footer = "%c\nUse `man dns-options` for additional information.",
     .f_version = IPMGR_VERSION_STRING,
-    .f_license = "This software is licenced under the GPL v3",
-    .f_copyright = "Copyright (c) 2013-"
-                   BOOST_PP_STRINGIZE(UTC_BUILD_YEAR)
+    .f_license = "This software is licensed under the GPL v3",
+    .f_copyright = "Copyright (c) 2018-"
+                   SNAPDEV_STRINGIZE(UTC_BUILD_YEAR)
                    " by Made to Order Software Corporation -- All Rights Reserved",
     //.f_build_date = UTC_BUILD_DATE,
     //.f_build_time = UTC_BUILD_TIME

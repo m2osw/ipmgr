@@ -21,7 +21,6 @@ cmake_minimum_required(VERSION 3.10.2)
 project(ipmgr_project)
 
 find_package(AdvGetOpt        REQUIRED)
-find_package(Boost            REQUIRED)
 find_package(CppProcess       REQUIRED)
 find_package(CppThread        REQUIRED)
 find_package(EventDispatcher  REQUIRED)
