@@ -578,6 +578,7 @@ std::int64_t ipmgr::zone_files::get_zone_duration(
     if(!advgetopt::validator_duration::convert_string(
               value
             , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+            , 1.0
             , result))
     {
         SNAP_LOG_ERROR
