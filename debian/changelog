@@ -1,3 +1,12 @@
+ipmgr (1.0.47.0~noble) noble; urgency=high
+
+  * Update to work with newer advgetopt.
+  * Removed the boost requirements. Not necessary anymore.
+  * Fixed to doxygen documentation/config.
+  * Fixed a filename.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 15 Aug 2026 13:01:56 -0700
+
 ipmgr (1.0.46.0~noble) noble; urgency=high
 
   * Changed `security_file` to `logs` in dns-setup script.
