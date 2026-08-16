@@ -50,6 +50,7 @@
 
 // advgetopt
 //
+#include    <advgetopt/exception.h>
 #include    <advgetopt/validator_duration.h>
 #include    <advgetopt/validator_integer.h>
 
@@ -170,7 +171,16 @@ advgetopt::option const g_ipmgr_options[] =
                     , advgetopt::GETOPT_FLAG_REQUIRED
                     , advgetopt::GETOPT_FLAG_PROCESS_VARIABLES>())
         , advgetopt::DefaultValue("5m")
-        , advgetopt::Help("Define the amount of time to between retries to refresh the cache.")
+        , advgetopt::Help("Define the amount of time to wait between retries to refresh the cache.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("default-nameservers")
+        , advgetopt::Flags(advgetopt::all_flags<
+                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+                    , advgetopt::GETOPT_FLAG_REQUIRED
+                    , advgetopt::GETOPT_FLAG_MULTIPLE
+                    , advgetopt::GETOPT_FLAG_PROCESS_VARIABLES>())
+        , advgetopt::Help("Default domain names for all your nameservers. You must define at least two.")
     ),
     advgetopt::define_option(
           advgetopt::Name("default-refresh")
@@ -198,15 +208,6 @@ advgetopt::option const g_ipmgr_options[] =
                     , advgetopt::GETOPT_FLAG_PROCESS_VARIABLES>())
         , advgetopt::DefaultValue("1d")
         , advgetopt::Help("Define the default time to live for a domain name request.")
-    ),
-    advgetopt::define_option(
-          advgetopt::Name("default-nameservers")
-        , advgetopt::Flags(advgetopt::all_flags<
-                      advgetopt::GETOPT_FLAG_GROUP_OPTIONS
-                    , advgetopt::GETOPT_FLAG_REQUIRED
-                    , advgetopt::GETOPT_FLAG_MULTIPLE
-                    , advgetopt::GETOPT_FLAG_PROCESS_VARIABLES>())
-        , advgetopt::Help("Default domain names for all your nameservers. You must define at least two.")
     ),
     advgetopt::define_option(
           advgetopt::Name("dns-ip")
@@ -2328,14 +2329,19 @@ ipmgr::ipmgr(int argc, char * argv[])
 {
     snaplogger::add_logger_options(*f_opt);
     f_opt->finish_parsing(argc, argv);
-    snaplogger::process_logger_options(
+    if(!snaplogger::process_logger_options(
                       *f_opt
                     , "/etc/ipmgr/logger"
                     , std::cout
-                    , false);
+                    , false))
+    {
+        // exit on any error
+        //
+        throw advgetopt::getopt_exit("logger options generated an error.", 1);
+    }
 
     f_dry_run = f_opt->is_defined("dry-run");
-    f_verbose = f_dry_run || f_opt->is_defined("verbose");
+    f_verbose = (f_dry_run || f_opt->is_defined("verbose")) && !f_opt->is_defined("quiet");
     f_force = f_opt->is_defined("force");
     f_config_warnings = f_opt->is_defined("config-warnings");
 }
